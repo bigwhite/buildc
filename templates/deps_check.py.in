@@ -1,0 +1,262 @@
+#! /usr/bin/env python
+
+import sys
+import os
+import shutil
+import optparse
+import imp
+import re
+import commands
+import time
+import logging
+
+valid_python_version = "2.4.3"
+valid_gcc_version    = "3.4.4"
+valid_make_version   = "3.81"
+valid_gdb_version    = "6.8"
+
+env_vars = [
+    ('PATH', False),
+]
+
+VERSION_FILE         = "VERSION"
+
+def separate():
+    s = commands.getoutput('uname -s')
+
+    if (s == 'Linux'):
+        return '/'
+    if (s == 'SunOS'):
+        return '/'
+    if (s == 'CYGWIN_NT-6.1-WOW64'):
+        return '\\'
+    else:
+        Log.info("unknwon in separate(), return \\\\")
+        return '\\'
+
+class Log(object):
+    logformat  = '%(asctime)s %(levelname)s: %(message)s'
+    dateformat = '%Y-%m-%d %H:%M:%S'
+
+    @staticmethod
+    def logConfig(logfile):
+        logging.basicConfig(level=logging.DEBUG,
+                            format=Log.logformat,
+                            datefmt=Log.dateformat,
+                            filename=logfile)
+
+    @staticmethod
+    def info(value):
+        print(value)
+        logging.info(value)
+
+def execute(cmd):
+    o = commands.getstatusoutput(cmd)
+    if o[0] != 0:
+        Log.info("Failed to execute cmd [%s], errno = [%d]" % (cmd, o[0]))
+        sys.exit(o[0])
+
+    return o[1]
+
+def system():
+    s = commands.getoutput('uname -s')
+
+    if (s == 'Linux'):
+        return 'linux'
+    if (s == 'SunOS'):
+        return 'solaris'
+    if (s == 'CYGWIN_NT-6.1-WOW64'):
+        return 'CYGWIN_NT-6.1-WOW64'
+    else:
+        return 'unknown'
+
+def cpu():
+    s = commands.getoutput('uname -p')
+
+    if (s == 'sparc'):
+        return 'sparc'
+    if (s == 'i386'):
+        return 'x86'
+    if (s == 'x86_64'):
+        return 'x86'
+    else:
+        return 'unknown'
+
+def __get_cur_path():
+    curdir = os.getcwd()
+    return curdir
+
+def check_system_information(version_file_path):
+    textlines = list()
+
+    version_file = None
+    try:
+        version_file = open(VERSION_FILE, 'r')
+    except IOError:
+        Log.info("error: could not open file: " + VERSION_FILE)
+        return False
+    textlines = version_file.readlines()
+    version_file.close()
+
+    valid_information_str = ""
+    for textline_str in textlines:
+        if str(textline_str).find('information:') != -1:
+            valid_information_str = textline_str
+            break
+    valid_information_str = valid_information_str[valid_information_str.find(':')+2:len(valid_information_str)-7]
+
+    information_str = cpu() + '-' + system()
+    if information_str == valid_information_str:
+        Log.info("checking for system information... yes")
+        return True
+    else:
+        Log.info("error: the installation package can not be installed in the system, " +
+           "system requirements " + valid_information_str)
+        return False
+
+def check_python(valid_python_version):
+    valid_version_list = re.findall('\d+', valid_python_version)
+
+    version_inf    = str(commands.getstatusoutput('python -V'))
+    version_prefix = 'Python'
+    version_code   = version_inf[version_inf.find(version_prefix):version_inf.find(version_prefix)+30]
+    version_num_list = re.findall("\d+", version_code)
+
+    if (len(version_num_list) < len(valid_version_list)):
+        Log.info("error: *** python too old; version %s or better required." % valid_gcc_version)
+        return False
+
+    version_num       = int(version_num_list[0])*100 + int(version_num_list[1])*10 + int(version_num_list[2])
+    valid_version_num = int(valid_version_list[0])*100 + int(valid_version_list[1])*10 + int(valid_version_list[2])
+
+    if version_num >= valid_version_num:
+        Log.info("checking for python... yes")
+        return True
+    else:
+        Log.info("error: *** python too old; version %s or better required." % valid_gcc_version)
+        return False
+
+def check_gcc(valid_gcc_version):
+    valid_version_list = re.findall('\d+', valid_gcc_version)
+
+    version_inf    = str(execute('gcc -v'))
+    version_prefix = 'gcc '
+    version_code   = version_inf[version_inf.find(version_prefix):version_inf.find(version_prefix)+50]
+    version_num_list = re.findall("\d+", version_code)
+
+    if (len(version_num_list) < len(valid_version_list)):
+        Log.info("warning: *** gcc too old; version %s or better required." % valid_gcc_version)
+        return False
+
+    version_num       = int(version_num_list[0]*100) + int(version_num_list[1]*10) + int(version_num_list[2])
+    valid_version_num = int(valid_version_list[0]*100) + int(valid_version_list[1]*10) + int(valid_version_list[2])
+
+    if version_num >= valid_version_num:
+        Log.info("checking for gcc... yes")
+        return True
+    else:
+        Log.info("warning: *** gcc too old; version %s or better required." % valid_gcc_version)
+        return False
+
+def check_gdb(valid_gdb_version):
+    valid_version_list = re.findall('\d+', valid_gdb_version)
+
+    version_inf    = str(execute('gdb -v'))
+    version_prefix = 'GNU gdb'
+    version_code   = version_inf[version_inf.find(version_prefix):version_inf.find(version_prefix)+50]
+    version_num_list = re.findall("\d+", version_code)
+
+    if (len(version_num_list) < len(valid_version_list)):
+        Log.info("warning: *** GNU gdb too old; version %s or better required." % valid_gdb_version)
+        return False
+
+    version_num       = int(version_num_list[0])*10 + int(version_num_list[1])
+    valid_version_num = int(valid_version_list[0])*10 + int(valid_version_list[1])
+
+    if version_num >= valid_version_num:
+        Log.info("checking for GNU gdb... yes")
+        return True
+    else:
+        Log.info("warning: *** GNU gdb too old; version %s or better required." % valid_gdb_version)
+        return False
+
+def check_make(valid_make_version):
+    valid_version_list = re.findall('\d+', valid_make_version)
+
+    version_inf    = str(execute('make -v'))
+    version_prefix = 'GNU Make'
+    version_code   = version_inf[version_inf.find(version_prefix):version_inf.find(version_prefix)+50]
+    version_num_list = re.findall("\d+", version_code)
+
+    if (len(version_num_list) < len(valid_version_list)):
+        Log.info("warning: *** GNU Make too old; version %s or better required." % valid_make_version)
+        return False
+
+    version_num       = int(version_num_list[0]*100) + int(version_num_list[1])
+    valid_version_num = int(valid_version_list[0]*100) + int(valid_version_list[1])
+
+    if version_num >= valid_version_num:
+        Log.info("checking for GNU Make... yes")
+        return True
+    else:
+        Log.info("warning: *** GNU Make too old; version %s or better required." % valid_make_version)
+        return False
+
+def check_env_var(env_var_name, env_var_value):
+    value = os.environ.get(env_var_name)
+    if value:
+        if env_var_value != "":
+            value = os.path.abspath(os.path.expanduser(value))
+            env_var_value = os.path.abspath(os.path.expanduser(env_var_value))
+
+        if env_var_value != "" and value != env_var_value:
+            Log.info("error: the value of the environment variable " + env_var_name + " exists is not " + env_var_value + ".")
+            return False
+
+        return True
+    else:
+        Log.info("error: environment variable " + env_var_name + " does not exist.")
+        return False
+
+def deps_check_main(install_root):
+    legality = True
+    result   = True
+
+    result = check_system_information(VERSION_FILE)
+    if result == False:
+        legality = False
+    result = check_python(valid_python_version)
+    if result == False:
+        legality = False
+    result = check_gcc(valid_gcc_version)
+    result = check_gdb(valid_gdb_version)
+    result = check_make(valid_make_version)
+
+    for var in env_vars:
+        var_value = ""
+        if var[1] == True:
+            var_value = install_root
+        else:
+            var_value = ""
+
+        if check_env_var(var[0], var_value):
+            Log.info("Environment variable " + var[0] + " OK.")
+        else:
+            legality = False
+
+    if legality:
+        return True
+    else:
+        return False
+
+if __name__ == '__main__':
+    curdir       = __get_cur_path()
+    cur_time_str = time.strftime("%Y-%m-%d-%H%M%S", time.localtime(time.time()))
+
+    log_file_path = curdir + separate() + ".deps_check_" + cur_time_str + ".log"
+    Log.logConfig(log_file_path)
+
+    stat = True
+    stat = deps_check_main("")
+    if stat:
+        Log.info('Check Ok!')

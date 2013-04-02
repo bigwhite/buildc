@@ -1,0 +1,45 @@
+# -*- python -*-
+# ex: set syntax=python:
+
+#(proj_name, version, author)
+project = ('foo', '1.3.1.67', 'tonybai')
+
+# [(libname, libversion, [archives*])*]
+external_libs = [
+ ("snmp"  , "5.7.0", ["libnetsnmpagent.a", "libnetsnmphelpers.a", "libnetsnmpmibs.a", "libnetsnmp.a"]),
+ ("libexpat" , "2.0.1", ["libexpat.a"])
+]
+
+# [def*]
+# e.g. ['-Dprint_msg=printf', '-D_SELF_DEBUG_']
+custom_defs = [
+                '-Dprint_msg=printf', 
+                '-Derr_msg=printf'
+              ]
+
+# [(var, value)*]
+# e.g. [ ('WITHOUT_DB_IMPORT', 'TRUE'), ('SUPPORT_MYSQL', 'TRUE') ]
+custom_vars = [
+                ('WITHOUT_IMPORT', 'TRUE'), 
+                ('WITHOUT_NM', 'TRUE')
+              ]
+
+# [include_path*]
+# e.g. ['./include', '/home/tonybai/.include']
+custom_includes = [
+                    './include'
+                  ]
+
+# [(lib_path, [archives])*]
+# e.g. [('/home/tonybai/.lib', ['libfoo.a', 'libbar.so']), ('.libs', ['libzoo.a'])]
+custom_libs = [
+                ('.libs', ['libfoo.a']),
+                ('', ['libzoo.so'])
+              ]
+
+# [(lib_path, [archives])*]
+# e.g. [('', ['libpthread.so', 'libm.so'])]
+system_libs = [
+                    ('', ['libpthread.so', 'libm.so']),
+                    ('/home/tonybai/newlib', ['libsocket-modify.so'])
+              ]

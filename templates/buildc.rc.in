@@ -1,0 +1,26 @@
+# -*- python -*-
+# ex: set syntax=python:
+
+#repository descriptions - (url, local_cache_path, [(libname, libversion, file_to_validate)*])
+
+foo_repository = ('svn://10.10.0.156:6666/foo',
+                       '~/.buildc_libs/foo',
+                       [ 
+                        ('snmp', '5.7.0', 'lib/libnetsnmp.a'),
+                        ('libexpat', '2.0.1', 'lib/libexpat.a'),
+                        ('libiconv', '1.13.1', 'lib/libiconv.a'),
+                        ('libevent', '2.0.10', 'lib/libevent.a'),
+                        ('lcut', '0.2.0', 'lib/liblcut.a'),
+                        ('instantclient', '10.2.0.5.0', 'lib/libnnz10.so')
+                       ] 
+                      )
+
+bar_repository = ('svn://10.10.0.156:6667/bar',
+                         '~/.buildc_libs/bar',
+                         []
+                 )
+
+external_repositories = [
+                          foo_repository, 
+                          bar_repository
+                        ]

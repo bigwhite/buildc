@@ -1,0 +1,17 @@
+# -*- python -*-
+# ex: set syntax=python:
+
+distribution = {
+  "packname"    : "cn-foo",
+  "version"     : "2.14.0.1",
+}
+
+source = [
+  {"trunk" : "svn://10.10.15.56:4444/cn/trunk/foo", "binary_prefix" : "cn-foo"},
+]
+
+dependences = [
+  ("instantclient", "10.2.0.5.0", ["libclntsh.so", "libclntsh.so.10.1", "libnnz10.so"]),
+  #("instantclient", "10.2.0.5.0", []),
+  #("instantclient", "10.2.0.5.0"),
+]

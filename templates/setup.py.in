@@ -1,0 +1,441 @@
+#! /usr/bin/env python
+
+import sys
+import os
+import shutil
+import optparse
+import imp
+import commands
+import time
+import logging
+from scripts import deps_check
+from scripts import env_gen
+
+LAYOUT_CFG_FILE = "layout.cfg"
+
+def execute_and_return(cmd):
+    o = commands.getstatusoutput(cmd)
+    return o[0]
+
+def execute(cmd):
+    err = execute_and_return(cmd)
+    if err != 0:
+        Log.info("Failed to execute cmd [%s], errno = [%d]" % (cmd, err))
+        sys.exit(err)
+
+    return err
+
+def system():
+    s = commands.getoutput('uname -s')
+
+    if (s == 'Linux'):
+        return 'linux'
+    if (s == 'SunOS'):
+        return 'solaris'
+    if (s == 'CYGWIN_NT-6.1-WOW64'):
+        return 'CYGWIN_NT-6.1-WOW64'
+    else:
+        return 'unknown'
+
+def cpu():
+    s = commands.getoutput('uname -p')
+
+    if (s == 'sparc'):
+        return 'sparc'
+    if (s == 'i386'):
+        return 'x86'
+    if (s == 'x86_64'):
+        return 'x86'
+    else:
+        return 'unknown'
+
+def separate():
+    s = commands.getoutput('uname -s')
+
+    if (s == 'Linux'):
+        return '/'
+    if (s == 'SunOS'):
+        return '/'
+    if (s == 'CYGWIN_NT-6.1-WOW64'):
+        return '\\'
+    else:
+        Log.info("unknwon in separate(), return \\\\")
+        return '\\'
+
+def go_to_path(path):
+    old_path = os.getcwd()
+    os.chdir(path)
+    #print("Cd " + path)
+    return old_path
+
+class Log(object):
+    logformat  = '%(asctime)s %(levelname)s: %(message)s'
+    dateformat = '%Y-%m-%d %H:%M:%S'
+
+    @staticmethod
+    def logConfig(logfile):
+        logging.basicConfig(level=logging.DEBUG,
+                            format=Log.logformat,
+                            datefmt=Log.dateformat,
+                            filename=logfile)
+
+    @staticmethod
+    def info(value):
+        print(value)
+        logging.info(value)
+
+def load_config(filename):
+    f = open(filename, 'rU')
+    try:
+        m = imp.load_source('', filename, f)
+    except(SyntaxError, error):
+        print(error)
+    f.close()
+    execute('rm -f ' + filename + 'c')
+
+    return m
+
+def get_args():
+    usage = "usage: %prog [options] COMMAND args"
+
+    description  = "setup.py an assistant tool for installing distribution.\n"
+    description += "\n  The most commonly used commands are:\n"
+    description += "  install               all install or install some of the components included\n"
+    description += "                        in the distribution package\n"
+    description += "  uninstall             uninstall all or uninstall some of the components\n"
+    description += "  upgrade               install the newest versions of the components \n"
+    description += "                        included in the distribution package\n"
+    description += "  check                 dependencies check on the target host\n"
+    description += "  backup                backup all components or backup conf components.\n"
+    description += "\n  Args are:\n"
+    description += "  all                   install all componets\n"
+    description += "  env                   install the runtime environment for executable file\n"
+    description += "  bin                   install the executable file\n"
+    description += "  conf                  install the configuration files\n"
+    description += "  deps                  install the dependency libraries and tools \n"
+    description += "                        for running executable file\n"
+
+    optparse.OptionParser.format_description = lambda self, formatter: self.description
+    p = optparse.OptionParser(usage = usage,
+                version = "%prog 0.1.8",
+                description = description)
+    p.add_option("", "--prefix", help = "specify the install path")
+
+    (opt, args) = p.parse_args()
+
+    if len(args) < 1 or len(args) > 2:
+        p.error("Have you read the Usage? Try [setup.py --help]!")
+        sys.exit(-1)
+
+    if (args[0] != 'install'
+        and args[0] != 'uninstall'
+        and args[0] != 'upgrade'
+        and args[0] != 'check'
+        and args[0] != 'backup'):
+        p.error("Unsupported command [%s]!? Try [setup.py --help]!" % args[0])
+        sys.exit(-1)
+
+    return (opt, args)
+
+def __get_install_root(opt, default_install_root):
+    if opt.prefix != None:
+        install_root = os.path.abspath(os.path.expanduser(opt.prefix))
+    else:
+        install_root = os.path.abspath(os.path.expanduser(default_install_root))
+
+    return install_root
+
+def __get_cur_path():
+    curdir = os.getcwd()
+    return curdir
+
+def __install_component(install_root, src, dest, diff_filepath, is_first_install):
+    info_str = ""
+    abs_dest = install_root + separate() + dest
+    if not os.path.exists(abs_dest):
+        os.makedirs(abs_dest)
+        info_str = "create directory [%s]" % abs_dest
+        Log.info(info_str)
+        if not is_first_install:
+            diff_file = open(diff_filepath, 'a')
+            diff_file.write(info_str + os.linesep)
+            diff_file.close()
+
+    curdir = __get_cur_path()
+    for item in os.listdir(curdir + separate() + src):
+        this_item = curdir   + separate() + src + separate() + item
+        dest_item = abs_dest + separate() + item
+        if os.path.exists(dest_item):
+            if os.path.isdir(dest_item):
+                __install_component(install_root, src + separate() + item, dest + separate() + item, diff_filepath, is_first_install)
+            else:
+                Log.info('Warning: [%s] has aleady existed, Skip it!' % dest_item)
+                Log.info("diff -r -u " + dest_item + " " + this_item + " >> " + diff_filepath)
+                if system() == 'linux' or system() == 'solaris':
+                    execute_and_return("diff -r -u " + dest_item + " " + this_item + " >> " + diff_filepath)
+        else:
+            if os.path.isdir(this_item):
+                shutil.copytree(this_item, dest_item)
+                info_str = "copy directory from [" + this_item + "] to [" + dest_item + "]"
+                Log.info(info_str)
+                if not is_first_install:
+                    diff_file = open(diff_filepath, 'a')
+                    diff_file.write(info_str + os.linesep)
+                    diff_file.close()
+            else:
+                shutil.copy(this_item, dest_item)
+                info_str = "copy file from [" + this_item + "] to [" + dest_item + "]"
+                Log.info(info_str)
+                if not is_first_install:
+                    diff_file = open(diff_filepath, 'a')
+                    diff_file.write(info_str + os.linesep)
+                    diff_file.close()
+
+def __install_deps(install_root, src, dest, diff_filepath, is_first_install):
+    info_str = ""
+    abs_dest = install_root + separate() + dest
+    if not os.path.exists(abs_dest):
+        os.makedirs(abs_dest)
+        info_str = "create directory [%s]" % abs_dest
+        Log.info(info_str)
+        if not is_first_install:
+            diff_file = open(diff_filepath, 'a')
+            diff_file.write(info_str + os.linesep)
+            diff_file.close()
+
+    curdir = __get_cur_path()
+    oracle_lib  = curdir          + separate() + src + separate()
+    oracle_lib += "instantclient" + separate()
+    oracle_lib += "10.2.0.5.0"    + separate()
+    oracle_lib += cpu() + "_64_" + system() + separate() + "lib"
+    if not os.path.exists(oracle_lib):
+        return
+
+    for item in os.listdir(oracle_lib):
+        this_item = oracle_lib + separate() + item
+        dest_item = abs_dest   + separate() + item
+        if os.path.exists(dest_item):
+            Log.info('Warning: [%s] has aleady existed, Skip it!' % dest_item)
+        else:
+            shutil.copy(this_item, dest_item)
+            info_str = "copy file from [" + this_item + "] to [" + dest_item + "]"
+            Log.info(info_str)
+            if not is_first_install:
+                diff_file = open(diff_filepath, 'a')
+                diff_file.write(info_str + os.linesep)
+                diff_file.close()
+
+def __install_env(install_root):
+    stat = True
+    stat = env_gen.env_gen_main(install_root)
+    if stat == False:
+        Log.info("Error: Enviroment generate Failed, Please open the log for error details!")
+        sys.exit(0)
+
+    Log.info("Enviroment generate OK!")
+
+def do_install(layout, component, opt):
+    Log.info("Do Install.")
+    if do_check(layout, opt) == False:
+        return
+
+    install_root  = __get_install_root(opt, layout.default_install_root)
+    curdir        = __get_cur_path()
+
+    cur_time_str  = time.strftime("%Y-%m-%d-%H%M%S", time.localtime(time.time()))
+    diff_filepath = curdir + separate() + "diff_" + cur_time_str
+
+    is_first_install = False
+    if not os.path.exists(install_root):
+        is_first_install = True
+
+    if component == 'all':
+        __install_env(install_root)
+        for c in layout.layout:
+            if c[1] == 'deps':
+                __install_deps(install_root, c[1], c[2], diff_filepath, is_first_install)
+            else:
+                __install_component(install_root, c[1], c[2], diff_filepath, is_first_install)
+
+            Log.info('Install ' + c[1] + ' to [' + install_root + separate() + c[2] + '] OK!')
+    elif component == 'env':
+        __install_env(install_root)
+    else:
+        for c in layout.layout:
+            if c[0] == component:
+                if c[1] == 'deps':
+                    __install_deps(install_root, c[1], c[2], diff_filepath, is_first_install)
+                else:
+                    __install_component(install_root, c[1], c[2], diff_filepath, is_first_install)
+
+                Log.info('Install ' + c[1] + ' to [' + install_root + c[2] + '] OK!')
+
+def __uninstall_component(uninstall_root, src, dest):
+    abs_dest = uninstall_root + '/' + dest
+    if not os.path.exists(abs_dest):
+        Log.info('Warning: [%s] does not exist!' % abs_dest)
+        Log.info('Uninstall ' + '[' + abs_dest + '] OK!')
+        sys.exit (0)
+
+    curdir = os.getcwd()
+    for item in os.listdir(curdir + '/' + src):
+        this_item = curdir + '/' + src + '/' + item
+        dest_item = abs_dest + '/' + item
+        if os.path.exists(dest_item):
+            if os.path.isdir(this_item):
+                execute('rm -r ' + dest_item)
+            else:
+                execute('rm ' + dest_item)
+        else:
+            Log.info('Warning: [%s] does not exist, Skip it!' % dest_item)
+
+    Log.info('Uninstall ' + '[' + abs_dest + '] OK!')
+
+def do_uninstall(layout, component, opt):
+    uninstall_root = __get_install_root(opt, layout.default_install_root)
+
+    if component == 'all':
+        for c in layout.layout:
+            __uninstall_component(uninstall_root, c[1], c[2])
+    else:
+        for c in layout.layout:
+            if c[0] == component:
+                __uninstall_component(uninstall_root, c[1], c[2])
+
+def __upgrade_component(upgrade_root, src, dest):
+    abs_dest = upgrade_root + separate() + dest
+    if not os.path.exists(abs_dest):
+        Log.info('Error: [%s] does not exist!' % abs_dest)
+        sys.exit(-1)
+
+    curdir = __get_cur_path()
+    for item in os.listdir(curdir + separate() + src):
+        this_item = curdir + separate() + src + separate() + item
+        dest_item = abs_dest + separate() + item
+
+        if os.path.exists(dest_item):
+            if os.path.isdir(this_item):
+                execute('rm -r ' + dest_item)
+            else:
+                execute('rm ' + dest_item)
+        else:
+            Log.info('Warning: [%s] does not exist, we install it!' % dest_item)
+
+        if os.path.isdir(this_item):
+            shutil.copytree(this_item, dest_item)
+        else:
+            shutil.copy(this_item, dest_item)
+
+    Log.info('Upgrade [' + src + '] OK!')
+
+def __upgrade_deps(upgrade_root, src, dest):
+
+    oracle_lib  = src + separate()
+    oracle_lib += "instantclient" + separate()
+    oracle_lib += "10.2.0.5.0"    + separate()
+    oracle_lib += cpu() + "_64_" + system() + separate() + "lib"
+
+    curdir = __get_cur_path()
+    if not os.path.exists(curdir + separate() + oracle_lib):
+        return
+    __upgrade_component(upgrade_root, oracle_lib, dest)
+
+def do_upgrade(layout, component, opt):
+    Log.info("Do Upgrade.")
+
+    upgrade_root = __get_install_root(opt, layout.default_install_root)
+
+    if component == 'all':
+        for c in layout.layout:
+            if c[1] == 'deps':
+                __upgrade_deps(upgrade_root, c[1], c[2])
+            else:
+                __upgrade_component(upgrade_root, c[1], c[2])
+    else:
+        for c in layout.layout:
+            if c[0] == component:
+                if c[1] == 'deps':
+                    __upgrade_deps(upgrade_root, c[1], c[2])
+                else:
+                    __upgrade_component(upgrade_root, c[1], c[2])
+
+def do_check(layout, opt):
+    Log.info("Do Check.")
+
+    install_root  = __get_install_root(opt, layout.default_install_root)
+    stat = True
+    stat = deps_check.deps_check_main(install_root)
+    if stat == False:
+        Log.info("Error: dependencies check Failed! Please open log for details!")
+        return False
+
+    Log.info("Dependencies Check OK!")
+    return True
+
+def __backup_component(install_root, component):
+    parent_path   = install_root[:install_root.rfind(separate())+1]
+    dir_name      = install_root[install_root.rfind(separate())+1:]
+    target_name   = ''
+    if component == 'all':
+        target_name = dir_name
+    elif component == 'conf':
+        target_name = dir_name + '_conf'
+        dir_name    = dir_name + separate() + 'conf'
+
+    if 1:
+        cur_time_str = time.strftime("%Y-%m-%d-%H%M%S", time.localtime(time.time()))
+        target_name  = target_name + '-' + cur_time_str
+
+    old_path = go_to_path(parent_path)
+    execute('rm -rf '  + target_name + '.tar.gz')
+    execute('tar cvf ' + target_name + '.tar ' + dir_name)
+    Log.info('Generate ' + target_name + '.tar' + ' OK!')
+    execute('gzip ' + target_name + '.tar')
+    Log.info('Zip ' + target_name + '.tar.gz' + ' OK!')
+    go_to_path(old_path)
+
+def do_backup(layout, component, opt):
+    Log.info("Do Backup.")
+
+    install_root  = __get_install_root(opt, layout.default_install_root)
+    if component == 'all':
+        if not os.path.exists(install_root):
+            Log.info('There is no backup path')
+        else:
+            __backup_component(install_root, component)
+    elif component == 'conf':
+        if not os.path.exists(install_root + separate() + 'conf'):
+            Log.info('There is no backup conf path')
+        else:
+            __backup_component(install_root, component)
+
+def setup_main():
+    curdir       = __get_cur_path()
+    cur_time_str = time.strftime("%Y-%m-%d-%H%M%S", time.localtime(time.time()))
+
+    log_file_path = curdir + separate() + "install_" + cur_time_str + ".log"
+    Log.logConfig(log_file_path)
+    layout = load_config(curdir + separate() + LAYOUT_CFG_FILE)
+
+    opt, args = get_args()
+
+    if len(args) < 2:
+        component = 'all'
+    else:
+        component = args[1]
+
+    if args[0] == 'install':
+        do_install(layout, component, opt)
+    elif args[0] == 'uninstall':
+        do_uninstall(layout, component, opt)
+    elif args[0] == 'upgrade':
+        do_upgrade(layout, component, opt)
+    elif args[0] == 'check':
+        do_check(layout, opt)
+    elif args[0] == 'backup':
+        do_backup(layout, component, opt)
+
+    sys.exit(0)
+
+if __name__ == '__main__':
+    setup_main()

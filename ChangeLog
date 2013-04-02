@@ -1,0 +1,93 @@
+# 
+# ChangeLog for buildc
+#
+2013-01-08 Wtz <wtz1989227@gmail.com>
+    * add pack source command
+    * version 0.2.2 released
+
+2012-12-19 Wtz <wtz1989227@gmail.com>
+    * add the parameter --ignore-error for buildc cache command
+
+2012-12-05 Wtz <wtz1989227@gmail.com>
+    * fix buildc cache manage problem to make these command work according to the cmode
+    * version 0.2.1 released
+
+2012-11-28 Wtz <wtz1989227@gmail.com>
+    * fix the bug when use buildc pack build --cmode=32-bit
+
+2012-11-01 Wtz <wtz1989227@gmail.com>
+    * support packing the dependent dynamic-link library according to the platform which the target would run on
+	* version 0.2.0 released
+
+2012-07-25 Wtz <wtz1989227@gmail.com>
+    * fix a bug when generated VERSION file
+
+2012-07-18 Wtz <wtz1989227@gmail.com>
+    * change the meaning of 'buildc pack build' support for multiple programs to compile and package
+    * add packaging process to generate the package information file VERSION
+    * supply three detailed example of setup.py.in, deps_check.py.in and env_gen.py.in
+    * version 0.1.9 released
+
+2012-07-02 Wtz <wtz1989227@gmail.com>
+	* remove FOPTIMIZE from Make.rules.in template
+	* add backup command and logging facility in setup.py.in template
+	* change install arg from 'full' to 'all' in setup.py.in
+    * supply an detailed example of deps_check.py.in
+	* version 0.1.8 released
+
+2012-06-04 Wtz <wtz1989227@gmail.com>
+    * fix the bug when parsing libname like "libglib-2.0.so"
+
+2012-04-25 Tony Bai <bigwhite.cn@gmail.com>
+    * fix the bug when generate make.rules on redhat 64-bit linux
+
+2012-04-18 Tony Bai <bigwhite.cn@gmail.com>
+    * change the meaning of 'buildc init'
+	* add 'buildc config init' command
+	* change 'buildc config-make' to 'buildc config make'
+	* version 0.1.7 released
+
+2012-04-18 Tony Bai <bigwhite.cn@gmail.com>
+    * add __check_buildc_rc and modify the implementation of cache upgrade
+	* adjust the structure of source code
+	* move all files in samples to templates and remove samples folder
+	* version 0.1.6 released
+
+2012-04-13 Tony Bai <bigwhite.cn@gmail.com>
+    * add STATIC_LIBS and DYNAMIC_LIBS
+	* fix a bug when config multiple custom libs
+	* add SYSTEM_LIBS
+	* version 0.1.5 released
+
+2012-04-12 Tony Bai <bigwhite.cn@gmail.com>
+    * Version 0.1.4 released
+    * fix a bug in command.execute when command executing result is over 256
+
+2012-04-10 Tony Bai <bigwhite.cn@gmail.com>
+    * Version 0.1.3 released
+
+2012-03-21 Tony Bai <bigwhite.cn@gmail.com>
+    * transpose $(LIBS_DEPEND) and $(CUSTOM_LIBS) in Make.rules.in
+
+2012-02-16 Tony Bai <bigwhite.cn@gmail.com>
+    * Version 0.1.2 released
+    * add env_gen.py.sample, deps_check.py.sample , layout.cfg.sample and setup.py.sample
+
+2012-02-10 Tony Bai <bigwhite.cn@gmail.com>
+    * add pack [create, build, clean, upload] command for setup project
+
+2012-02-08 Tony Bai <bigwhite.cn@gmail.com>
+    * Version 0.1.1 released
+
+2012-02-08 Tony Bai <bigwhite.cn@gmail.com>
+   * In order to fix the bug that on x86 solaris make tool can not recognize the '~' in path literal, we expand lib cache path when config-make
+
+2012-02-07 Tony Bai <bigwhite.cn@gmail.com>
+   * add support for specifying the install path
+   * Add setup.sh and ChangeLog
+   * Version 0.1.1 released
+
+2011-12-08 Tony Bai <bigwhite.cn@gmail.com>
+    * Version 0.1.0 released
+
+

@@ -1,0 +1,17 @@
+# -*- python -*-
+# ex: set syntax=python:
+
+# if '--prefix=YOUR_INSTALL_PATH' is empty, setup.py will use the default_install_root below
+default_install_root = '~/.foo'
+
+#
+# [(command_arg, source, destination)*]
+#
+# source - directory under distribution package
+# destination - directory under install_root_path
+#
+layout = [
+    ('bin' , 'app', 'bin'),
+    ('conf' , 'conf', 'conf'),
+    ('deps' , 'deps', 'bin')
+]
