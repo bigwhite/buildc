@@ -1,71 +1,7 @@
 #! /usr/bin/env python
 
-import sys
-import os
-import time
-import logging
-
 directory = [
     "bin",
-    "deps",
     "conf",
     "log",
 ]
-
-class Log(object):
-    logformat  = '%(asctime)s %(levelname)s: %(message)s'
-    dateformat = '%Y-%m-%d %H:%M:%S'
-
-    @staticmethod
-    def logConfig(logfile):
-        logging.basicConfig(level=logging.DEBUG,
-                            format=Log.logformat,
-                            datefmt=Log.dateformat,
-                            filename=logfile)
-
-    @staticmethod
-    def info(value):
-        print(value)
-        logging.info(value)
-
-def __get_cur_path():
-    curdir = os.getcwd()
-    return curdir
-
-def make_tree(branches, trunk):
-    '''make a directory tree in root directory.
-
-    branches is a list of directories to be created.
-    trunk is the root directory.
-    '''
-    top = os.path.expandvars(trunk)
-    if not os.path.isdir(top):
-        os.makedirs(top)
-        Log.info('Create [' + top + '] OK!')
-
-    for dir in branches:
-        dirx = os.path.join(top, dir)
-        if not os.path.exists(dirx):
-            os.makedirs(dirx)
-            Log.info('Create [' + dirx + '] OK!')
-
-def env_gen_main(install_root):
-    make_tree(directory, install_root)
-
-    return True
-
-if __name__ == '__main__':
-    curdir       = __get_cur_path()
-    cur_time_str = time.strftime("%Y-%m-%d-%H%M%S", time.localtime(time.time()))
-
-    Log.logConfig(curdir + os.sep + ".env_gen_" + cur_time_str + ".log")
-
-    if len(sys.argv) < 2:
-        Log.info("Error: Install Path has not been specified!")
-        sys.exit(-1)
-
-    install_root = sys.argv[1]
-    env_gen_main(install_root)
-
-    Log.info('Environment Generate Ok!')
-    sys.exit(0)

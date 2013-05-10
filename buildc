@@ -15,87 +15,116 @@
 # limitations under the License.
 
 import sys
-import os
-
-from utils import env
-from utils import config
-from utils import command
-from utils import errnos
 from utils import options
+from utils.errnos import Errors
+from core.core import Core
+from core.glo import Glo
 
-from core import core
-from core import pack
-from core.core import BIT64
-
-def buildc_run():
-    buildc_home = os.path.dirname(os.path.realpath(__file__))
-    opts, args = options.options_parse()
+def buildc_run(opts, args):
+    result      = None
 
     if args[0] == 'init':
-        core.init(buildc_home)
-        sys.exit(0)
+        result = Core.init()
+        return result
 
     if args[0] == 'cache':
         if args[1] == 'init':
-            core.cache_init(opts.cmode, opts.ignore_error)
-            sys.exit(0)
-
-        if args[1] == 'update':
-            core.cache_update(opts.cmode, opts.ignore_error)
-            sys.exit(0)
+            result = Core.cache_init()
+            if result:
+                print "Buildc cache initialization OK!"
+            return result
 
         if args[1] == 'upgrade':
-            core.cache_upgrade(opts.cmode, opts.ignore_error)
-            sys.exit(0)
+            result = Core.cache_upgrade()
+            if result:
+                print "Buildc cache upgrade OK!"
+            return True
+
+        if args[1] == 'update':
+            result = Core.cache_update(opts.cmode, opts.ignore_error)
+            if result:
+                print "Buildc cache update OK!"
+            else:
+                print "Buildc cache update Error!"
+            return result
 
         if args[1] == 'remove':
-            core.cache_remove(opts.cmode)
-            sys.exit(0)
+            result = Core.cache_remove(opts.cmode)
+            if result:
+                print "Buildc cache remove OK!"
+            return result
 
-        print "Error: command [cache] does not support arg [%s]" % args[1]
-        sys.exit(errnos.errors['args_invalid'])
+        print "Error: command [%s] does not support arg [%s]" % (args[0], args[1])
+        sys.exit(Errors.args_invalid)
 
     if args[0] == 'config':
         if args[1] == 'init':
-            core.config_init(buildc_home)
-            sys.exit(0)
+            result = Core.config_init()
+            return result
 
         if args[1] == 'make':
             if opts.cmode == None:
-                opts.cmode = BIT64
-            core.config_make(buildc_home, opts.cmode)
-            sys.exit(0)
+                opts.cmode = Glo.BIT64
+            result = Core.config_make(opts.cmode, opts.force_update)
+            if result:
+                print "Buildc config make OK!"
+            else:
+                print "Buildc config make Error!"
+            return result
 
-        print "Error: command [config] does not support arg [%s]" % args[1]
-        sys.exit(errnos.errors['args_invalid'])
+        print "Error: command [%s] does not support arg [%s]" % (args[0], args[1])
+        sys.exit(Errors.args_invalid)
 
     if args[0] == 'pack':
         if args[1] == 'create':
-            pack.pack_create(buildc_home, opts)
-            sys.exit(0)
+            result = Core.pack_create(opts.project)
+            if result:
+                print "Setup project [" + opts.project + "] create OK!"
+            return result
 
         if args[1] == 'build':
             if opts.cmode == None:
-                opts.cmode = BIT64
-            pack.pack_build(buildc_home, opts)
-            sys.exit(0)
+                opts.cmode = Glo.BIT64
+            result = Core.pack_build(opts.cmode, opts.tag, opts.force_update)
+            if result:
+                print "Buildc pack build OK!"
+            else:
+                print "Buildc pack build Error!"
+            return result
 
         if args[1] == 'clean':
-            pack.pack_clean()
-            sys.exit(0)
+            result = Core.pack_clean()
+            if result:
+                print 'Buildc pack clean OK!'
+            return result
 
         if args[1] == 'upload':
-            pack.pack_upload(opts)
-            sys.exit(0)
+            result = Core.pack_upload(opts)
+            if result:
+                print "Buildc pack upload OK!"
+            return result
 
         if args[1] == 'source':
             if opts.cmode == None:
-                opts.cmode = BIT64
-            pack.pack_source(buildc_home, opts)
-            sys.exit(0)
+                opts.cmode = Glo.BIT64
+            result = Core.pack_source(opts.cmode, opts.tag, opts.force_update, opts.component)
+            if result:
+                print "Buildc pack source OK!"
+            else:
+                print "Buildc pack source Error!"
+            return result
 
-        print "Error: command [pack] does not support arg [%s]" % args[1]
-        sys.exit(errnos.errors['args_invalid'])
+        print "Error: command [%s] does not support arg [%s]" % (args[0], args[1])
+        sys.exit(Errors.args_invalid)
 
 if __name__ == '__main__':
-    buildc_run()
+    result = None
+
+    opts, args = options.options_parse()
+    options.options_check(opts, args)
+
+    result = buildc_run(opts, args)
+    if result:
+        sys.exit(0)
+    else:
+        sys.exit(1)

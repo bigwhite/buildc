@@ -1,6 +1,13 @@
 # 
 # ChangeLog for buildc
 #
+
+2013-05-10 Wtz <wtz1989227@gmail.com>
+    * redefine the semantic meaning of buildc cache init/update/upgrade/remove
+    * redefine the semantic meaning of buildc config make
+    * refactor the code base using OO paradigm
+    * version 0.3.0 released
+
 2013-05-10 Wtz <wtz1989227@gmail.com>
     * check whether "file_to_validate" in .buildc.rc exists when cache upgrade command is executed
     * check whetehr the Make.rules file is empty when executing "config make"

@@ -1,0 +1,17 @@
+# -*- python -*-
+# ex: set syntax=python:
+
+program_version = [
+    {'python_version' : '2.4.3'},
+    {'gcc_version' : '3.4.4'},
+    {'gdb_version' : '6.8'},
+    {'make_version' : '3.81'},
+]
+
+env_vars = [
+    'PATH',
+]
+
+system = [
+    {'os_information' : 'x86-linux-64'},
+]
