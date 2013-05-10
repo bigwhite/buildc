@@ -1,6 +1,16 @@
 # 
 # ChangeLog for buildc
 #
+2013-05-10 Wtz <wtz1989227@gmail.com>
+    * check whether "file_to_validate" in .buildc.rc exists when cache upgrade command is executed
+    * check whetehr the Make.rules file is empty when executing "config make"
+    * add VERSION file which contains buildc version information into the package
+    * version 0.2.3 released
+
+2013-01-29 Wtz <wtz1989227@gmail.com>
+    * fix buildc __check_buildc_cfg() function, the function to increase the library path existence check
+    * fix buildc pack build command
+
 2013-01-08 Wtz <wtz1989227@gmail.com>
     * add pack source command
     * version 0.2.2 released

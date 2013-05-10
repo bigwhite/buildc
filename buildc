@@ -77,7 +77,7 @@ def buildc_run():
         if args[1] == 'build':
             if opts.cmode == None:
                 opts.cmode = BIT64
-            pack.pack_build(opts)
+            pack.pack_build(buildc_home, opts)
             sys.exit(0)
 
         if args[1] == 'clean':

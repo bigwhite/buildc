@@ -107,6 +107,9 @@ def __cache_update(cmode, ignore_error):
     for repository in c.external_repositories:
         (url, local_path, libs) = repository
 
+        if len(libs) == 0:
+            continue
+
         print "\n===>Begin update repository [" + url + ']'
 
         cache_path = os.path.abspath(os.path.expanduser(local_path))
@@ -272,12 +275,19 @@ def __check_buildc_cfg(cmode, lib_root_path = None):
         is_found = False
         for (cache_libname, cache_libversion, cache_path) in cache_libs:
             if libname == cache_libname and libversion == cache_libversion:
+                path = None
                 if lib_root_path == None:
-                    libs_depend.append((libname, libversion, archives,
-                                        cache_path + '/' + libname + '/' + libversion + '/' + platform_info))
+                    path = cache_path + '/' + libname + '/' + libversion + '/' + platform_info
                 else:
-                    libs_depend.append((libname, libversion, archives,
-                                        lib_root_path + '/' + libname + '/' + libversion + '/' + platform_info))
+                    path = lib_root_path + '/' + libname + '/' + libversion + '/' + platform_info
+
+                if not os.path.exists(cache_path + '/' + libname + '/' + libversion + '/' + platform_info):
+                    print 'Can not found [' + cache_path + '/' + libname + '/' + libversion + '/' + platform_info + '] in local library cache!'
+                    print 'Please make sure the library [' + cache_path + '/' + libname + '/' + libversion + '/' + platform_info + '] is available!'
+                    continue
+
+                libs_depend.append((libname, libversion, archives, path))
+
                 is_found = True
                 break
         if not is_found:
@@ -311,6 +321,9 @@ def config_make(buildc_home, cmode, lib_root_path = None, project_root_path = No
 
     if not os.path.exists('./Make.rules'):
         print 'Can not found Make.rules in current directory!'
+        makerules.generate(buildc_home, cmode, libs_depend, project_root_path)
+    elif os.path.getsize('./Make.rules') == 0:
+        print 'The Make.rules file is empty in current directory!'
         makerules.generate(buildc_home, cmode, libs_depend, project_root_path)
     else:
         makerules.reconfig(cmode, libs_depend, project_root_path)

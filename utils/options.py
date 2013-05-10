@@ -18,6 +18,7 @@ import sys
 import optparse
 import errnos
 
+VERSION = '0.2.3'
 def options_parse():
     usage = "usage: %prog [options] COMMAND args"
     description = "buildc is an assistant tool for project building and packing.\n"\
@@ -45,7 +46,7 @@ def options_parse():
     #optparse.OptionParser.format_epilog = lambda self, formatter: self.epilog
     optparse.OptionParser.format_description = lambda self, formatter: self.description
     p = optparse.OptionParser(usage = usage,
-                              version="%prog 0.2.2",
+                              version="%prog " + VERSION,
                               description = description)
 
     p.add_option("-c", "--cmode", choices=["64-bit", "32-bit"], dest="cmode",

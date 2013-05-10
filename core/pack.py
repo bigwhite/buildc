@@ -31,6 +31,7 @@ from utils import command
 from utils import config
 from utils import env
 from utils import errnos
+from utils import options
 import core
 
 SETUP_CFG_FILE = "./setup.cfg"
@@ -111,7 +112,7 @@ echo "config Make.rules OK!"
 
     print 'Build src [' + url + '] OK!'
 
-def __build_source(build_home, url, cmode, binary_prefix, pack_path):
+def __build_source(buildc_home, build_home, url, cmode, binary_prefix, pack_path):
   command.execute('mkdir -p ' + build_home + '/.build')
   os.chdir(build_home + '/.build')
   print "Create dir [.build] OK!"
@@ -123,7 +124,7 @@ def __build_source(build_home, url, cmode, binary_prefix, pack_path):
   os.chdir(source_home)
   print "Cd " + source_home
 
-  command.execute('buildc config make --cmode=' + cmode)
+  core.config_make(buildc_home, cmode)
   print "Config Make.rules OK!"
 
   command.execute('make CMODE=' + cmode)
@@ -166,11 +167,12 @@ def __build_version(build_home, source, tag, cmode):
             revision_code = __get_svn_info_revision_code(url)
             project_reversion_list.append("project name: %s, revision: %s" % (project_name, revision_code))
 
-    info_str  = "";
-    info_str += "information: " + information_str + os.linesep;
-    info_str += "build time: "  + cur_time_str + os.linesep;
+    info_str  = ""
+    info_str += "buildc version: " + options.VERSION + os.linesep
+    info_str += "information: " + information_str + os.linesep
+    info_str += "build time: "  + cur_time_str + os.linesep
     for index in range(len(project_reversion_list)):
-        info_str += project_reversion_list[index] + os.linesep;
+        info_str += project_reversion_list[index] + os.linesep
 
     version_file = open(build_home + os.sep + 'src' + os.sep + 'VERSION', 'w')
     version_file.write(info_str)
@@ -402,7 +404,7 @@ def __do_component_all_pack(buildc_home, build_home, source, distribution, tag, 
     command.execute('rm -fr ' + build_home + '/.build')
     print 'Del [.build] OK!'
 
-def __do_pack(build_home, source, distribution, opts):
+def __do_pack(buildc_home, build_home, source, distribution, opts):
     url = ''
 
     cmode = opts.cmode
@@ -411,7 +413,7 @@ def __do_pack(build_home, source, distribution, opts):
     if opts.tag != None:
         url       = opts.tag
         pack_path = 'app'
-        __build_source(build_home, url, cmode, source[0]["binary_prefix"], pack_path)
+        __build_source(buildc_home, build_home, url, cmode, source[0]["binary_prefix"], pack_path)
     else:
         for index in range(len(source)):
             url = source[index]["trunk"]
@@ -419,7 +421,7 @@ def __do_pack(build_home, source, distribution, opts):
                 pack_path = 'app'
             else:
                 pack_path = source[index]["pack_path"]
-            __build_source(build_home, url, cmode, source[index]["binary_prefix"], pack_path)
+            __build_source(buildc_home, build_home, url, cmode, source[index]["binary_prefix"], pack_path)
 
     __build_version(build_home, source, opts.tag, opts.cmode)
 
@@ -534,7 +536,7 @@ def __copy_dependent_file(src_path, dst_path, tagfiles):
     for tagfile in tagfiles:
         if not os.path.exists(src_path + '/' + tagfile):
             print 'Can not found ' + src_path + '/' + tagfile
-            sys.exit(errnos.errors['file_not_found'])
+            sys.exit(errnos.errors['file_or_dir_exists'])
 
         shutil.copyfile(src_path + '/' + tagfile, dst_path + '/' + tagfile)
 
@@ -580,7 +582,7 @@ def __copy_dependent(dependence, external_repositories, build_home, cmode, dirna
     if lib_flag == False:
         print('Can not found ' + deps_libname + '/' + deps_libversion + '/' + env.cpu() + '_' + cmode[0:2] + '_' + env.os() + \
             ' in external repositories.')
-        sys.exit(errnos.errors['file_not_found'])
+        sys.exit(errnos.errors['file_or_dir_exists'])
 
 def __copy_dependent_include(dependence, external_repositories, build_home, cmode):
     __copy_dependent(dependence, external_repositories, build_home, cmode, "include")
@@ -624,7 +626,7 @@ def pack_component_all(buildc_home, opts):
     __do_component_all_pack(buildc_home, build_home, source, distribution, opts.tag, opts.cmode)
     sys.exit(0)
 
-def pack_build(opts):
+def pack_build(buildc_home, opts):
     build_home = os.getcwd()
 
     attribute_lists = __pack_init()
@@ -646,7 +648,7 @@ def pack_build(opts):
         for dependence in dependences:
             __copy_dependent_library(dependence, c.external_repositories, build_home, opts.cmode)
 
-    __do_pack(build_home, source, distribution, opts)
+    __do_pack(buildc_home, build_home, source, distribution, opts)
     sys.exit(0)
 
 def pack_clean():
