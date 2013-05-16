@@ -92,7 +92,7 @@ class Makerules(object):
 
             for archive in archives:
                 custom_libs += (' -l' + Glo.libname2compile_option(archive))
-                if Makerules.__is_static_lib(archive):
+                if Glo.is_static_lib(archive):
                     if not len(libpath) == 0:
                         static_libs += (' -L ' + libpath)
                     static_libs += (' -l' + Glo.libname2compile_option(archive))
