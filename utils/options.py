@@ -18,9 +18,9 @@ import sys
 import optparse
 from utils.errnos import Errors
 
-VERSION = '0.3.0'
+VERSION = '0.3.1'
 def options_parse():
-    usage       = "usage: %prog [options] COMMAND args"
+    usage       = "usage: %prog [options] COMMAND args [var=val]"
 
     description = "buildc is an assistant tool for project building and packing.\n"
     description += "\n  The most commonly used buildc commands are:\n"
@@ -44,6 +44,8 @@ def options_parse():
     description += "  pack    clean         clean the setup project.\n"
     description += "  pack    upload        upload the distribution package \n"
     description += "                        to a remote server through ftp.\n"
+    description += "\n"
+    description += "  var=val               command-line variable, used for project related configuration file.\n"
 
     #optparse.OptionParser.format_epilog = lambda self, formatter: self.epilog
     optparse.OptionParser.format_description = lambda self, formatter: self.description
@@ -71,6 +73,7 @@ def options_parse():
                                     help="force update the local third-party libraries to the latest version")
     p.add_option("",   "--component", choices=["src", "deps", "all"],
                                     help="source component")
+    p.add_option("",   "--config",  help="project related configuration file path")
 
     (opt, args) = p.parse_args()
 

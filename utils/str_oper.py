@@ -3,6 +3,18 @@ import re
 
 class StrOper(object):
     @staticmethod
+    def show_hex_from_str(str, len):
+        i = 1
+        while (i < len + 1):
+            if isinstance(str[i-1], int):
+                print "%02x" % str[i-1],
+            else:
+                print "%02x" % ord(str[i-1]),
+            if ( (i % 16) == 0):
+                print ""
+            i = i + 1
+
+    @staticmethod
     def parse_host_str(host_str):
         host_string = host_str[str(host_str).rfind('@')+1 : ]
         username    = host_str[0 : str(host_str).find('/')]
@@ -31,7 +43,7 @@ class StrOper(object):
         value_list = list()
         num = StrOper.take_tag_text(user_env_str, var_name + "=", '\n', var_values, -1)
         if num == 0:
-            info_str = "warning: LD_LIBRARY_PATH does not exist."
+            info_str = "Warning: " + var_name + " does not exist."
             print info_str
             return None
         else:
@@ -51,6 +63,8 @@ class StrOper(object):
             var_values = StrOper.get_env_var_values(var_name, user_env_str)
             if var_values != None:
                 path_str = str(path_str).replace('$' + var_name, var_values[0], 1)
+            else:
+                return None
 
         return path_str
 
@@ -253,6 +267,9 @@ class StrOper(object):
         return balance
 
 if __name__ == '__main__':
+
+    StrOper.show_hex_from_str("hello_world", len("hello_world"))
+
     user_env_str = \
 """MPIAG_HOME=mpiag_temp/ffff/aaaa
 JAVA_HOME=java1_temp/ffff/aaaa:jara2_temp/ffff/aaaa

@@ -40,5 +40,6 @@ class Util:
         return string
 
 if __name__ == '__main__':
-    print Util.usr_home()
-    print Util.cpu()
+    print "usr_home : "       + Util.usr_home()
+
+    pass

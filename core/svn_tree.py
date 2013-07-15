@@ -63,12 +63,22 @@ class SvnTree(TreeByBinTree):
 
         svn_path = search_path.replace("|", "/")
         cmd_output = Util.execute_and_output("svn ls " + svn_path)
-        cmd_output = str(cmd_output).replace("/", "")
+        if cmd_output == "":
+            return
         item_nodes = str(cmd_output).split("\n")
 
+        is_dir = True
         for item_node in item_nodes:
-            cur_level = cur_level + 1
+            if item_node[-1] == "/":
+                item_node = item_node[:-1]
+                is_dir = True
+            else:
+                is_dir = False
+
             node_path = search_path + '|' + item_node
             self.add_item(node_path, '|', True, False, False)
-            self.build_tree(node_path, cur_level, level_max)
-            cur_level = cur_level - 1
+
+            if is_dir == True:
+                cur_level = cur_level + 1
+                SvnTree.build_tree(self, node_path, cur_level, level_max)
+                cur_level = cur_level - 1

@@ -53,7 +53,7 @@ class BinTree(object):
             return item.rchild
         else:
             print "right child already exists."
-            return BinNode(item).rchild
+            return item.rchild
 
     @staticmethod
     def Creat():

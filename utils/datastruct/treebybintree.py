@@ -12,6 +12,11 @@ class TreeByBinTree(BinTree):
     BT_FIRST = 0x0FFFF
     BT_LAST  = 0x0FFFE
 
+    def __init__(self):
+        self.layer_count = 0
+        self.layer_num   = 0
+        return super(TreeByBinTree, self).__init__()
+
     @staticmethod
     def get_child_item(item):
         return item.lchild
@@ -119,7 +124,9 @@ class TreeByBinTree(BinTree):
 
             p_item = p_item.rchild
 
-    def add_item(self, full_path, delimiter="\\", add_path_item = True, can_repeat = False, prompt = True):
+    def add_item(self, full_path, delimiter = "\\", add_path_item = True, can_repeat = False, prompt = True):
+        if full_path.endswith(delimiter):
+            full_path = full_path[:-len(delimiter)]
         if (len(full_path) == 0):
             return None
         full_path_list = str(full_path).split(delimiter)
@@ -199,6 +206,43 @@ class TreeByBinTree(BinTree):
 
         return
 
+    def delete_leaf_node(self, item, prompt = True):
+        if (self.get_child_item(item) == None):
+            h_parent_item = self.get_parent_item(item)
+            h_pre_item = None
+            if h_parent_item == None:
+                if (self.root == item):
+                    self.root = item.rchild
+                else:
+                    h_pre_item = self.root
+                    while (h_pre_item.rchild != item):
+                        h_pre_item = h_pre_item.rchild
+                    h_pre_item.rchild = item.rchild
+                return True
+            else:
+                if (h_parent_item.lchild == item):
+                    h_parent_item.lchild = item.rchild
+                else:
+                    h_pre_item = h_parent_item.lchild
+                    while (h_pre_item.rchild != item):
+                        h_pre_item = h_pre_item.rchild
+                    h_pre_item.rchild = item.rchild
+                return True
+        else:
+            if (prompt == True):
+                print "Can not delete non-leaf node."
+            return False
+
+    def delete_leaf_item(self, full_path, delimiter = "\\", prompt = True):
+        found_item_list = list()
+        self.find_full_strict_item(None, found_item_list, full_path, delimiter, 1)
+        if len(found_item_list) == 0:
+            if (prompt == True):
+                print "full_path corresponding node does not exist."
+            return True
+
+        return self.delete_leaf_node(found_item_list[0], prompt)
+
     def find_item(self, full_path, delimiter = "\\", prompt = True, operation = 1):
         assert(operation==1 or operation==2 or operation==3)
 
@@ -241,6 +285,99 @@ class TreeByBinTree(BinTree):
                     h_item = self.get_child_item(h_item)
                     location = location + 1
                     item_str = full_path_list[location-1]
+
+    def find_full_item(self, item, found_item_list, full_path, delimiter = "\\", operation = 1):
+        assert(operation==1 or operation==2 or operation==3)
+
+        if full_path.endswith(delimiter):
+            full_path = full_path[:-len(delimiter)]
+        if (len(full_path) == 0):
+            found_item_list.append(item)
+            return
+
+        if (item == None):
+            h_child_item = self.get_root_item()
+        else:
+            h_child_item = self.get_child_item(item)
+
+        is_found = False
+        item_str = None
+        child_path = None
+        while(h_child_item != None):
+            if full_path.find(delimiter) == -1:
+                item_str = full_path
+            else:
+                item_str = full_path[:full_path.find(delimiter)]
+
+            if (operation == 1 and self.get_item_text(h_child_item) == item_str):
+                is_found = True
+            elif (operation == 2 and str(self.get_item_text(h_child_item)).startswith(item_str) == True):
+                is_found = True
+            elif (operation == 3 and str(self.get_item_text(h_child_item)).endswith(item_str) == True):
+                is_found = True
+            else:
+                is_found = False
+
+            if is_found == True:
+                if full_path.find(delimiter) == -1:
+                    child_path = ""
+                else:
+                    child_path = full_path[full_path.find(delimiter)+1:]
+                self.find_full_item(h_child_item, found_item_list, child_path, delimiter, operation)
+            h_child_item = self.get_next_sibling_item(h_child_item)
+
+    def find_full_strict_item(self, item, found_item_list, full_path, delimiter = "\\", operation = 1):
+        assert(operation==1 or operation==2 or operation==3)
+
+        if full_path.endswith(delimiter):
+            full_path = full_path[:-len(delimiter)]
+        if (len(full_path) == 0):
+            found_item_list.append(item)
+            return
+
+        if (item == None):
+            h_child_item = self.get_root_item()
+        else:
+            h_child_item = self.get_child_item(item)
+
+        is_found = False
+        item_str = None
+        loc_num  = None
+        cur_num  = 0
+        child_path = None
+        while(h_child_item != None):
+            if full_path.find(delimiter) == -1:
+                item_str = full_path
+            else:
+                item_str = full_path[:full_path.find(delimiter)]
+
+            if item_str.find('.') != -1:
+                loc_num = int(item_str[item_str.find('.')+1:])
+                item_str = item_str[:item_str.find('.')]
+
+            if (operation == 1 and self.get_item_text(h_child_item) == item_str):
+                is_found = True
+            elif (operation == 2 and str(self.get_item_text(h_child_item)).startswith(item_str) == True):
+                is_found = True
+            elif (operation == 3 and str(self.get_item_text(h_child_item)).endswith(item_str) == True):
+                is_found = True
+            else:
+                is_found = False
+
+            if is_found == True:
+                cur_num = cur_num + 1
+
+            if is_found == True:
+                if loc_num == None or loc_num <= cur_num:
+                    if full_path.find(delimiter) == -1:
+                        child_path = ""
+                    else:
+                        child_path = full_path[full_path.find(delimiter)+1:]
+                    self.find_full_strict_item(h_child_item, found_item_list, child_path, delimiter, operation)
+            if loc_num == None or loc_num > cur_num:
+                h_child_item = self.get_next_sibling_item(h_child_item)
+            else:
+                break
 
     def get_full_path(self, h_item, delimiter="\\"):
         full_path = ""
@@ -297,6 +434,20 @@ class TreeByBinTree(BinTree):
         TreeByBinTree.str_msg = ""
 
         FileOper.write_data(file_path, content_str)
+        return
+
+    def show_format_tree(self, indent = "  ", export_node_function = None):
+        level = 0
+        TreeByBinTree.str_msg = ""
+
+        self.export_node_handler = export_node_function
+        self.recursive_write_items_to_text(None, level, indent)
+        self.export_node_handler = None
+        content_str = TreeByBinTree.str_msg
+        TreeByBinTree.str_msg = ""
+
+        print "tree structure:"
+        print content_str
         return
 
     def import_format_tree_from_file(self, file_path, indent = "  ", import_node_handler = None):
@@ -379,36 +530,150 @@ class TreeByBinTree(BinTree):
             self.take_item_data_by_browse(h_child_item, deal_process, deal_way)
             h_child_item = self.get_next_sibling_item(h_child_item)
 
-if __name__ == '__main__':
-    def export_node_function(tree_str, node_data):
-        if node_data == None:
-            TreeByBinTree.str_msg += tree_str
+    def take_item_data_by_browse_only_deal_sibling(self, item, deal_process, deal_way = 3):
+        h_child_item = None
+        if (item == None):
+            h_child_item = self.get_root_item()
         else:
-            TreeByBinTree.str_msg += tree_str + "    " + node_data
+            h_parent_item = self.get_parent_item(item)
+            if (h_parent_item == None):
+                h_child_item = self.get_root_item()
+            else:
+                h_child_item = self.get_child_item(h_parent_item)
 
-    def deal_leaf_node(item, parameter):
-        item.data = "leaf_node"
+        while(h_child_item != None):
+            if (deal_way == 1):
+                if (self.get_child_item(h_child_item) == None):
+                    deal_process(h_child_item, self.parameter_point)
+            elif (deal_way == 2):
+                if (self.get_child_item(h_child_item) != None):
+                    deal_process(h_child_item, self.parameter_point)
+            elif (deal_way == 3):
+                deal_process(h_child_item, self.parameter_point)
+            else:
+                print "Error: Processing method parameters deal_way error, deal_way=" + deal_way
+                sys.exit(Errors.args_invalid)
 
-    tree = TreeByBinTree()
-    tree.add_item("aaa1\\bbb1\\ccc1")
-    tree.add_item("aaa1\\bbb1\\ccc2")
-    tree.add_item("aaa1\\bbb1\\ccc3")
-    tree.add_item("aaa1\\bbb2\\ccc1")
-    tree.add_item("aaa1\\bbb2\\ccc2")
-    tree.add_item("aaa1\\bbb2\\ccc3")
-    tree.add_item("aaa2\\bbb1\\ccc1")
-    tree.add_item("aaa2\\bbb1\\ccc2")
-    tree.add_item("aaa2\\bbb1\\ccc3")
-    tree.add_item("aaa2\\bbb2\\ccc1")
-    tree.add_item("aaa2\\bbb2\\ccc2")
-    tree.add_item("aaa2\\bbb2\\ccc3")
-    tree.export_format_tree_to_file("X:\\ttt1.txt")
+            h_child_item = self.get_next_sibling_item(h_child_item)
 
-    import_tree = TreeByBinTree()
-    import_tree.import_format_tree_from_file("X:\\ttt1.txt")
-    import_tree.export_format_tree_to_file("X:\\import_tree.txt")
+    @staticmethod
+    def set_browse_layer_num(self, num):
+        self.layer_num = num
+    @staticmethod
+    def get_browse_layer_num(self):
+        return self.layer_num
 
-    tree.take_item_data_by_browse(None, deal_leaf_node, 1)
-    tree.export_format_tree_to_file("X:\\ttt2.txt", "  ", export_node_function)
+    def take_item_data_by_browse_limit_layer_num(self, item, deal_process, deal_way = 3):
+        self.layer_count = 0
+        self.__in_take_item_data_by_browse_limit_layer_num(item, deal_process, deal_way)
 
-    print "output X:\\ttt.txt"
+    def __in_take_item_data_by_browse_limit_layer_num(self, item, deal_process, deal_way = 3):
+        h_child_item = None
+        if (item == None):
+            h_child_item = self.get_root_item()
+            self.layer_count += 1
+        else:
+            h_child_item = self.get_child_item(item)
+            self.layer_count += 1
+
+        if (self.layer_count > self.layer_num):
+            self.layer_count -= 1
+            return
+
+        while(h_child_item != None):
+            if (deal_way == 1):
+                if (self.get_child_item(h_child_item) == None):
+                    deal_process(h_child_item, self.parameter_point)
+            elif (deal_way == 2):
+                if (self.get_child_item(h_child_item) != None):
+                    deal_process(h_child_item, self.parameter_point)
+            elif (deal_way == 3):
+                deal_process(h_child_item, self.parameter_point)
+            else:
+                print "Error: Processing method parameters deal_way error, deal_way=" + deal_way
+                sys.exit(Errors.args_invalid)
+
+            self.take_item_data_by_browse(h_child_item, deal_process, deal_way)
+            h_child_item = self.get_next_sibling_item(h_child_item)
+
+        self.layer_count -= 1
+
+    def browse_control(self, h_cur_item, deal_process, browse_way = 1, deal_node_way = 3, layer_num = 0):
+        if (self.layer_num <= 0):
+            if (browse_way == 1):
+                self.take_item_data_by_browse(None, deal_process, deal_node_way)
+            elif (browse_way == 2):
+                self.take_item_data_by_browse(h_cur_item, deal_process, deal_node_way)
+            elif (browse_way == 3):
+                self.take_item_data_by_browse_only_deal_sibling(h_cur_item, deal_process, deal_node_way)
+            else:
+                print "Error: Processing method parameters browse_way error, browse_way = %d" % browse_way
+                sys.exit(Errors.args_invalid)
+        else:
+            self.set_browse_layer_num(layer_num)
+            if (browse_way == 1):
+                self.take_item_data_by_browse_limit_layer_num(None, deal_process, deal_node_way)
+            elif(browse_way == 2):
+                self.take_item_data_by_browse_limit_layer_num(h_cur_item, deal_process, deal_node_way)
+            elif(browse_way == 3):
+                self.take_item_data_by_browse_only_deal_sibling(h_cur_item, deal_process, deal_node_way)
+            else:
+                print "Error: Processing method parameters browse_way error, browse_way = %d" % browse_way
+                sys.exit(Errors.args_invalid)
+
+    __in_take_items_address_list = None
+    @staticmethod
+    def __in_take_items(h_item, parameter):
+        TreeByBinTree.__in_take_items_address_list.append(h_item)
+
+    def take_items(self, h_item, items_address_list, browse_way = 2, deal_node_way = 3, layer_num = 0):
+        TreeByBinTree.__in_take_items_address_list = list()
+
+        self.browse_control(h_item, TreeByBinTree.__in_take_items, browse_way, deal_node_way, layer_num)
+        for item in TreeByBinTree.__in_take_items_address_list:
+            items_address_list.append(item)
+
+        length = len(TreeByBinTree.__in_take_items_address_list)
+        TreeByBinTree.__in_take_items_address_list = None
+        return length
+
+    __in_take_item_titles_list = None
+    @staticmethod
+    def __in_take_item_titles(h_item, parameter):
+        _this = parameter
+        TreeByBinTree.__in_take_item_titles_list.append(_this.get_item_text(h_item))
+
+    def take_item_titles(self, h_item, item_titles_list, browse_way = 2, deal_node_way = 3, layer_num = 0):
+        TreeByBinTree.__in_take_item_titles_list = list()
+
+        self.parameter_point = self
+        self.browse_control(h_item, TreeByBinTree.__in_take_item_titles, browse_way, deal_node_way, layer_num)
+        self.parameter_point = None
+        for item in TreeByBinTree.__in_take_item_titles_list:
+            item_titles_list.append(item)
+
+        length = len(TreeByBinTree.__in_take_item_titles_list)
+        TreeByBinTree.__in_take_item_titles_list = None
+        return length
+
+    __in_take_item_paths_list = None
+    @staticmethod
+    def __in_take_item_paths(h_item, parameter):
+        _this = parameter
+        TreeByBinTree.__in_take_item_paths_list.append(_this.get_full_path(h_item)[0])
+
+    def take_item_paths(self, h_item, item_paths_list, browse_way = 2, deal_node_way = 3, layer_num = 0):
+        TreeByBinTree.__in_take_item_paths_list = list()
+
+        self.parameter_point = self
+        self.browse_control(h_item, TreeByBinTree.__in_take_item_paths, browse_way, deal_node_way, layer_num)
+        self.parameter_point = None
+        for item in TreeByBinTree.__in_take_item_paths_list:
+            item_paths_list.append(item)
+
+        length = len(TreeByBinTree.__in_take_item_paths_list)
+        TreeByBinTree.__in_take_item_paths_list = None
+        return length
+
+if __name__ == '__main__':
+    pass

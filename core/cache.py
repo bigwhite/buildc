@@ -1,10 +1,10 @@
 #! /usr/bin/env python
 import os
 import sys
-from utils.config import Config
 from utils.util import Util
 from utils.errnos import Errors
 from glo import Glo
+from load import Load
 from svn_tree import SvnTree
 from cache_svn_tree import CacheSvnTree
 
@@ -19,7 +19,7 @@ class Cache(object):
             sys.exit(Errors.conf_file_not_found)
 
         dotrepository  = Glo.dot_buildc_repository_path()
-        buildc_rc      = Config.load_config(dotrc)
+        buildc_rc      = Load.load_dot_buildc_rc(dotrc)
         cache_svn_tree = CacheSvnTree(buildc_rc.external_repositories)
         cache_svn_tree.import_format_tree_from_file(dotrepository)
 
@@ -29,7 +29,7 @@ class Cache(object):
 
     @staticmethod
     def __create_dot_repository(dotrc, dotrepository):
-        buildc_rc = Config.load_config(dotrc)
+        buildc_rc = Load.load_dot_buildc_rc(dotrc)
 
         cur_level = 1
         cache_svn_tree  = CacheSvnTree(buildc_rc.external_repositories)
@@ -85,7 +85,7 @@ class Cache(object):
 
         dotrepository = Glo.dot_buildc_repository_path()
 
-        buildc_rc  = Config.load_config(dotrc)
+        buildc_rc  = Load.load_dot_buildc_rc(dotrc)
         cache_svn_tree = CacheSvnTree(buildc_rc.external_repositories)
         cache_svn_tree.import_format_tree_from_file(dotrepository)
 
@@ -110,7 +110,7 @@ class Cache(object):
             print 'Please run buildc init and then config .buildc.rc!'
             sys.exit(Errors.conf_file_not_found)
 
-        buildc_rc  = Config.load_config(dotrc)
+        buildc_rc  = Load.load_dot_buildc_rc(dotrc)
         dotrepository  = Glo.dot_buildc_repository_path()
         cache_svn_tree = CacheSvnTree(buildc_rc.external_repositories)
         cache_svn_tree.import_format_tree_from_file(dotrepository)
@@ -130,7 +130,7 @@ class Cache(object):
 
     @staticmethod
     def cache_build_by_config(buildc_cfg_path, cmode, force_update = True):
-        buildc_cfg = Config.load_config(buildc_cfg_path)
+        buildc_cfg = Load.load_buildc_cfg(buildc_cfg_path, Glo.var_str())
 
         is_valid = Cache.cache_build_by_external_libs(buildc_cfg.external_libs, cmode, force_update)
         return is_valid
@@ -143,7 +143,7 @@ class Cache(object):
             print 'Please run buildc init and then config .buildc.rc!'
             sys.exit(Errors.conf_file_not_found)
 
-        buildc_rc  = Config.load_config(dotrc)
+        buildc_rc  = Load.load_dot_buildc_rc(dotrc)
         dotrepository = Glo.dot_buildc_repository_path()
         cache_svn_tree = CacheSvnTree(buildc_rc.external_repositories)
         cache_svn_tree.import_format_tree_from_file(dotrepository)
@@ -160,7 +160,7 @@ class Cache(object):
             print 'Please run buildc init and then config .buildc.rc!'
             sys.exit(Errors.conf_file_not_found)
 
-        buildc_rc = Config.load_config(dotrc)
+        buildc_rc = Load.load_dot_buildc_rc(dotrc)
         for repository in buildc_rc.external_repositories:
             svn_path   = repository[0]
             cache_path = Glo.get_local_cache_path(svn_path, buildc_rc.external_repositories)

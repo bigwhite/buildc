@@ -5,25 +5,23 @@ import time
 import shutil
 import glob
 import itertools
-import commands
 from ftplib import FTP
 from utils import options
 from utils.errnos import Errors
-from utils.config import Config
 from utils.util import Util
-from utils.system_local_info import SystemLocalInfo
 from utils.svn_local_oper import SvnLocalOper
 from glo import Glo
+from load import Load
 from makerules import Makerules
 from cache import Cache
 from svn_tree import SvnTree
 
 class Pack(object):
-    SETUP_CFG_FILE = "./setup.cfg"
+    SETUP_CFG_PATH = "./setup.cfg"
 
     @staticmethod
     def __pack_init():
-        c = Config.load_config(Pack.SETUP_CFG_FILE)
+        c = Load.load_setup_cfg(Pack.SETUP_CFG_PATH)
         return c
 
     @staticmethod
@@ -46,9 +44,9 @@ class Pack(object):
             print('Can not found ' + dotrc)
             print('Please run buildc init and then config .buildc.rc!')
             sys.exit(Errors.conf_file_not_found)
-        buildc_rc = Config.load_config(dotrc)
+        buildc_rc = Load.load_dot_buildc_rc(dotrc)
 
-        buildc_cfg = Config.load_config(Glo.buildc_cfg_path())
+        buildc_cfg = Load.load_buildc_cfg(Glo.buildc_cfg_path(), Glo.var_str())
 
         is_valid = Cache.cache_build_by_external_libs(buildc_cfg.external_libs, cmode, force_update)
         if is_valid == False:
@@ -145,7 +143,7 @@ echo "config Make.rules OK!"
 
     @staticmethod
     def __build_version(build_home, source, cmode, tag):
-        information_str = SystemLocalInfo.cpu() + '-' + SystemLocalInfo.system() + '-' + cmode[:2] + 'bit';
+        information_str = Glo.CPU + '-' + Glo.SYSTEM + '-' + cmode[:2] + 'bit';
         cur_time_str    = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(time.time()))
         project_reversion_list = list()
 
@@ -183,9 +181,9 @@ echo "config Make.rules OK!"
 
         target_prefix = distribution["packname"] + \
                '-' + distribution["version"] + \
-               '-' + SystemLocalInfo.cpu() + \
-               '-' + SystemLocalInfo.system() + \
-               '-' + cmode[:2] + 'bit' + '-deps'
+               '-' + Glo.CPU + \
+               '-' + Glo.SYSTEM + \
+               '-' + cmode[:2] + 'bit' + '-deps' + Glo.PACK_SUFFIX
 
         os.makedirs(build_home + '/.package/' + target_prefix)
         print "Create dir [.package/" + target_prefix + "] OK!"
@@ -223,9 +221,9 @@ echo "config Make.rules OK!"
 
         target_prefix = distribution["packname"] + \
                '-' + distribution["version"] + \
-               '-' + SystemLocalInfo.cpu() + \
-               '-' + SystemLocalInfo.system() + \
-               '-' + cmode[:2] + 'bit' + '-src'
+               '-' + Glo.CPU + \
+               '-' + Glo.SYSTEM + \
+               '-' + cmode[:2] + 'bit' + '-src' + Glo.PACK_SUFFIX
 
         if sys.version_info[0] == 2 and sys.version_info[1] < 6:
             shutil.copytree(build_home + '/.build', build_home + '/.package/' + target_prefix)
@@ -261,9 +259,9 @@ echo "config Make.rules OK!"
 
         target_prefix = distribution["packname"] + \
                '-' + distribution["version"] + \
-               '-' + SystemLocalInfo.cpu() + \
-               '-' + SystemLocalInfo.system() + \
-               '-' + cmode[:2] + 'bit' + '-full'
+               '-' + Glo.CPU + \
+               '-' + Glo.SYSTEM + \
+               '-' + cmode[:2] + 'bit' + '-full' + Glo.PACK_SUFFIX
 
         src_path = build_home + os.sep + 'src' + os.sep + 'deps'
         dst_path = build_home + os.sep + '.package' + os.sep + target_prefix + os.sep + 'deps'
@@ -303,9 +301,9 @@ echo "config Make.rules OK!"
 
         target_prefix = distribution["packname"] + \
                 '-' + distribution["version"] + \
-                '-' + SystemLocalInfo.cpu() + \
-                '-' + SystemLocalInfo.system() + \
-                '-' + cmode[:2] + 'bit'
+                '-' + Glo.CPU + \
+                '-' + Glo.SYSTEM + \
+                '-' + cmode[:2] + 'bit' + Glo.PACK_SUFFIX
 
         if sys.version_info[0] == 2 and sys.version_info[1] < 6:
             shutil.copytree(build_home + '/src', build_home + '/.package/' + target_prefix)
@@ -452,8 +450,8 @@ echo "config Make.rules OK!"
     def __do_upload(build_home, distribution, opts):
         target_prefix = distribution["packname"] + \
                 '-' + distribution["version"] + \
-                '-' + SystemLocalInfo.cpu() + \
-                '-' + SystemLocalInfo.system() + \
+                '-' + Glo.CPU + \
+                '-' + Glo.SYSTEM + \
                 '-' + opts.cmode[:2] + 'bit'
 
         os.chdir(build_home + '/distributions')
@@ -576,7 +574,7 @@ echo "config Make.rules OK!"
         h_child_item = svn_tree.get_root_item()
         while(h_child_item != None):
             svn_root_path = svn_tree.get_item_text(h_child_item)
-            full_svn_path = svn_root_path + '|' + dep_libname + '|' + dep_libversion + '|' + SystemLocalInfo.cpu() + '_' + cmode[0:2] + '_' + SystemLocalInfo.system()
+            full_svn_path = svn_root_path + '|' + dep_libname + '|' + dep_libversion + '|' + Glo.CPU + '_' + cmode[0:2] + '_' + Glo.SYSTEM
             leaf_node = svn_tree.find_item(full_svn_path, '|', False, 1)
             if leaf_node != None:
 
@@ -585,8 +583,8 @@ echo "config Make.rules OK!"
                     print svn_root_path + ' does not exist in .buildc.rc'
                     sys.exit(Errors.conf_item_not_found)
 
-                lib_path      = cache_root_path + '/'     + dep_libname + '/' + dep_libversion + '/' + SystemLocalInfo.cpu() + '_' + cmode[0:2] + '_' + SystemLocalInfo.system() + '/' + dirname
-                deps_lib_path = build_home + '/src/deps/' + dep_libname + '/' + dep_libversion + '/' + SystemLocalInfo.cpu() + '_' + cmode[0:2] + '_' + SystemLocalInfo.system() + '/' + dirname
+                lib_path      = cache_root_path + '/'     + dep_libname + '/' + dep_libversion + '/' + Glo.CPU + '_' + cmode[0:2] + '_' + Glo.SYSTEM + '/' + dirname
+                deps_lib_path = build_home + '/src/deps/' + dep_libname + '/' + dep_libversion + '/' + Glo.CPU + '_' + cmode[0:2] + '_' + Glo.SYSTEM + '/' + dirname
 
                 if dirname == "lib":
                     Pack.__copy_dependent_file(lib_path, deps_lib_path, dep_tagfile)
@@ -597,7 +595,7 @@ echo "config Make.rules OK!"
 
             h_child_item = svn_tree.get_next_sibling_item(h_child_item)
 
-        print('Can not found ' + dep_libname + '/' + dep_libversion + '/' + SystemLocalInfo.cpu() + '_' + cmode[0:2] + '_' + SystemLocalInfo.system() + \
+        print('Can not found ' + dep_libname + '/' + dep_libversion + '/' + Glo.CPU + '_' + cmode[0:2] + '_' + Glo.SYSTEM + \
             ' in external repositories.')
         sys.exit(Errors.file_or_dir_exists)
 
@@ -671,7 +669,7 @@ echo "config Make.rules OK!"
                 print('Can not found ' + dotrc)
                 print('Please run buildc init and then config .buildc.rc!')
                 sys.exit(Errors.conf_file_not_found)
-            buildc_rc = Config.load_config(dotrc)
+            buildc_rc = Load.load_dot_buildc_rc(dotrc)
 
             dotrepository  = Glo.dot_buildc_repository_path()
             svn_tree = SvnTree()

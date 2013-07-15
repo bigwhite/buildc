@@ -3,6 +3,7 @@ import os
 import sys
 from utils.errnos import Errors
 from utils.util import Util
+from utils.system_local_info import SystemLocalInfo
 
 class Glo(object):
     default_includes = ''
@@ -31,6 +32,15 @@ class Glo(object):
 
     BIT32 = '32-bit'
     BIT64 = '64-bit'
+    CPU    = SystemLocalInfo.cpu()
+    SYSTEM = SystemLocalInfo.system()
+    PACK_SUFFIX = ""
+
+    VAR_STR = ""
+
+    @staticmethod
+    def var_str():
+        return Glo.VAR_STR
 
     @staticmethod
     def dot_buildc_rc_path():

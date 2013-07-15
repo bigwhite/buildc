@@ -287,4 +287,5 @@ if __name__ == '__main__':
     print "harddisk_total_size : " + str(SystemLocalInfo.harddisk_total_size())
     print "harddisk_free_size : "  + str(SystemLocalInfo.harddisk_free_size())
     print "get_shell_type : "      + SystemLocalInfo.get_shell_type()
+
     print "test end!"

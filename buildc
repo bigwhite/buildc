@@ -15,6 +15,8 @@
 # limitations under the License.
 
 import sys
+import os
+import re
 from utils import options
 from utils.errnos import Errors
 from core.core import Core
@@ -22,6 +24,28 @@ from core.glo import Glo
 
 def buildc_run(opts, args):
     result      = None
+
+    if opts.config != None:
+        Glo.BUILDC_CFG_PATH = os.path.expanduser(opts.config)
+
+        suffix_name = os.path.basename(Glo.BUILDC_CFG_PATH)
+        if str(suffix_name).endswith(".cfg"):
+            suffix_name = suffix_name[:-4]
+        if str(suffix_name).startswith("buildc_"):
+            suffix_name = suffix_name[7:]
+
+        if suffix_name != "":
+            Glo.PACK_SUFFIX = "_" + suffix_name
+
+    if len(args) >= 3:
+        if re.match("[a-zA-Z_][a-zA-Z_0-9]*=[a-zA-Z_0-9]+", args[2]) == None:
+            print "Error: command [%s] does not support arg [%s] [%s]" % (args[0], args[1], args[2])
+            sys.exit(Errors.args_invalid)
+
+        suffix_name = args[2][args[2].find("=")+1:]
+
+        Glo.VAR_STR = args[2]
+        Glo.PACK_SUFFIX = "_" + suffix_name
 
     if args[0] == 'init':
         result = Core.init()

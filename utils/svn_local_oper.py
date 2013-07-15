@@ -33,8 +33,6 @@ class SvnLocalOper(object):
 
     @staticmethod
     def update(download_path, ignore_error = None, trunk_user = None, trunk_pass = None):
-        Util.execute_and_output("rm -rf " + download_path)
-
         cmd_str  = "svn update " + "\"" + download_path +"\""
         if trunk_user != None and trunk_pass != None and \
             trunk_user != "" and trunk_pass != "":

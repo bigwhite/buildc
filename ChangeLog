@@ -2,6 +2,23 @@
 # ChangeLog for buildc
 #
 
+2013-07-15 Tony Bai <bigwhite.cn@gmail.com>
+    * add README.md
+    * version 0.3.1 released
+
+2013-07-12 Wtz <wtz1989227@gmail.com>
+    * cache_svn_tree.py: fix the problem when display information
+    * improve build_tree() to generate valid cache data nodes
+    * cache_svn_tree.py: fix the problem that get_cache_libs() returns duplicate data
+    * add --config parameter that specifies the name of project related configuration file
+    * add var=name parameter that specifies the name of project related configuration file
+
+2013-06-21 Wtz <wtz1989227@gmail.com>
+    * svn_local_oper.py: fix the problem when updating svn
+
+2013-05-16 Wtz <wtz1989227@gmail.com>
+    * makerules.py: fix the problem when checking archive file
+
 2013-05-10 Wtz <wtz1989227@gmail.com>
     * redefine the semantic meaning of buildc cache init/update/upgrade/remove
     * redefine the semantic meaning of buildc config make
@@ -106,5 +123,3 @@
 
 2011-12-08 Tony Bai <bigwhite.cn@gmail.com>
     * Version 0.1.0 released
-
-

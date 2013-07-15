@@ -1,11 +1,9 @@
 #! /usr/bin/env python
 import os
 import sys
-import commands
 from utils.errnos import Errors
 from utils.util import Util
 from utils.svn_local_oper import SvnLocalOper
-from utils.system_local_info import SystemLocalInfo
 from utils.datastruct.treebybintree import TreeByBinTree
 from glo import Glo
 from svn_tree import SvnTree
@@ -24,7 +22,7 @@ class CacheSvnTree(SvnTree):
         while(h_child_item != None):
             if (self.get_child_item(h_child_item) == None):
                 item_text = self.get_item_text(h_child_item)
-                if str(item_text).find("_" + cmode[0:2] + "_") != -1:
+                if item_text == Glo.CPU + '_' + cmode[0:2] + '_' + Glo.SYSTEM:
                     full_svn_path = self.get_full_path(h_child_item, '|')[0]
 
                     svn_root_path = full_svn_path[:str(full_svn_path).find('|')]
@@ -85,7 +83,7 @@ class CacheSvnTree(SvnTree):
             url = repository[0]
             root_item = self.find_item(url, '|', False, 1)
             if root_item == None:
-                print "Error: svn path " + url + " does not exist in .buildc.repositionry."
+                print "Error: svn path " + url + " does not exist in .buildc.repository."
                 presence_consistency_flag = False
             else:
                 if url not in url_list:
@@ -132,8 +130,36 @@ class CacheSvnTree(SvnTree):
     def is_new_tree(self, item):
         return SvnTree.is_new_tree(self, item)
 
+    def __adjust_tree(self):
+        layer_count  = None
+        item_text    = None
+        element_list = None
+        parent_item  = None
+        items_address_list = list()
+        self.take_items(None, items_address_list, 2, 1, 0)
+        for item_address in items_address_list:
+            layer_count = self.get_layer_count(item_address)
+            if layer_count >= 4:
+                item_text = self.get_item_text(item_address)
+                element_list = str(item_text).split("_")
+                if (len(element_list) == 3 and \
+                    (element_list[0] == "sparc" or element_list[0] == "x86") and \
+                    (element_list[1] == "32" or element_list[1] == "64") and \
+                    (element_list[2] == "linux" or element_list[2] == "solaris")):
+                    continue
+
+            result = True
+            item = item_address
+            while (result == True):
+                parent_item = self.get_parent_item(item)
+                result = self.delete_leaf_node(item, False)
+                item = parent_item
+                if item == None:
+                    break
+
     def build_tree(self, search_path, cur_level, level_max = -1):
         SvnTree.build_tree(self, search_path, cur_level, level_max)
+        self.__adjust_tree()
 
     def update_tree(self, item, cmode, ignore_error):
         if (item == None):
@@ -189,7 +215,7 @@ class CacheSvnTree(SvnTree):
         h_child_item = self.get_root_item()
         while(h_child_item != None):
             svn_root_path = self.get_item_text(h_child_item)
-            full_svn_path = svn_root_path + '|' + dep_libname + '|' + dep_libversion + '|' + SystemLocalInfo.cpu() + '_' + cmode[0:2] + '_' + SystemLocalInfo.system()
+            full_svn_path = svn_root_path + '|' + dep_libname + '|' + dep_libversion + '|' + Glo.CPU + '_' + cmode[0:2] + '_' + Glo.SYSTEM
             real_svn_path = str(full_svn_path).replace('|', '/')
             leaf_node = self.find_item(full_svn_path, '|', False, 1)
             if leaf_node != None:
@@ -200,7 +226,7 @@ class CacheSvnTree(SvnTree):
                     print svn_root_path + ' does not exist in .buildc.rc'
                     sys.exit(Errors.conf_item_not_found)
 
-                full_cache_path = cache_root_path + '|' + dep_libname + '|' + dep_libversion + '|' + SystemLocalInfo.cpu() + '_' + cmode[0:2] + '_' + SystemLocalInfo.system()
+                full_cache_path = cache_root_path + '|' + dep_libname + '|' + dep_libversion + '|' + Glo.CPU + '_' + cmode[0:2] + '_' + Glo.SYSTEM
                 real_cache_path = str(full_cache_path).replace('|', '/')
                 svn_revision_code = SvnLocalOper.get_svn_info_revision_code(real_svn_path, True)
                 if leaf_node.data == 'none':
@@ -239,7 +265,7 @@ class CacheSvnTree(SvnTree):
             return True
         else:
             info_str  = 'Can not get [' + dep_libname + ' ' + dep_libversion + ' '
-            info_str += SystemLocalInfo.cpu() + '_' + cmode[0:2] + '_' + SystemLocalInfo.system() + '] to local library cache!'
+            info_str += Glo.CPU + '_' + cmode[0:2] + '_' + Glo.SYSTEM + '] to local library cache!'
             print info_str
             print 'Please make sure the library [' + dep_libname + '] is available!'
             return False
