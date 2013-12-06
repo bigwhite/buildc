@@ -46,6 +46,9 @@ class SvnLocalOper(object):
     def get_svn_info_revision_code(path, ignore_error = None):
         svn_info_str = str(Util.execute_and_output('svn info ' + path, ignore_error))
 
+        if svn_info_str.startswith("svn: warning:"):
+            return ""
+
         revision_code = re.findall(" (\d+)\n", svn_info_str)
         #revision_code: list of two elements, a revision number, a last changed rev
 

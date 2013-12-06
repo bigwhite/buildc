@@ -1,6 +1,9 @@
 # 
 # ChangeLog for buildc
 #
+2013-08-01 Wtz <wtz1989227@gmail.com>
+    * add the SVN repository version change processing logic
+    * version 0.3.2 released
 
 2013-07-15 Tony Bai <bigwhite.cn@gmail.com>
     * add README.md

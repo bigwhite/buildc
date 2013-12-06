@@ -11,6 +11,7 @@ class Config(object):
             m = imp.load_source('', filename, f)
         except SyntaxError, error:
             print error
+            return None
         f.close()
         Util.execute_and_output('rm -f ' + filename + 'c')
 

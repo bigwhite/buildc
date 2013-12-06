@@ -229,28 +229,38 @@ class CacheSvnTree(SvnTree):
                 full_cache_path = cache_root_path + '|' + dep_libname + '|' + dep_libversion + '|' + Glo.CPU + '_' + cmode[0:2] + '_' + Glo.SYSTEM
                 real_cache_path = str(full_cache_path).replace('|', '/')
                 svn_revision_code = SvnLocalOper.get_svn_info_revision_code(real_svn_path, True)
+                if svn_revision_code == "":
+                    return False
                 if leaf_node.data == 'none':
                     if os.path.exists(real_cache_path):
                         Util.execute_and_return("rm -rf " + real_cache_path)
 
                     print 'library [' + dep_libname + ' ' + dep_libversion + '] does not exist!'
                     print 'Checkout [' + real_svn_path + ']...'
-                    SvnLocalOper.checkout(real_svn_path, real_cache_path, True)
+                    result = SvnLocalOper.checkout(real_svn_path, real_cache_path, True)
+                    if result == False:
+                        return False
                     print 'Checkout [' + real_svn_path + '] OK!'
                     leaf_node.data = svn_revision_code
                 else:
                     if not os.path.exists(real_cache_path):
                         print 'library [' + dep_libname + ' ' + dep_libversion + '] does not exist!'
                         print 'Checkout [' + real_svn_path + ']...'
-                        SvnLocalOper.checkout(real_svn_path, real_cache_path, None)
+                        result = SvnLocalOper.checkout(real_svn_path, real_cache_path, True)
+                        if result == False:
+                            return False
                         print 'Checkout [' + real_svn_path + '] OK!'
                         leaf_node.data = svn_revision_code
                     else:
                         if force_update:
                             cache_revision_code = SvnLocalOper.get_svn_info_revision_code(real_cache_path, True)
+                            if cache_revision_code == "":
+                                return False
                             if svn_revision_code != cache_revision_code:
                                 print 'Update [' + dep_libname + ' ' + dep_libversion + ']...'
-                                SvnLocalOper.update(real_cache_path, None)
+                                result = SvnLocalOper.update(real_cache_path, True)
+                                if result == False:
+                                    return False
                                 print 'Update [' + dep_libname + ' ' + dep_libversion + '] OK!'
                             leaf_node.data = svn_revision_code
                         else:
@@ -264,10 +274,6 @@ class CacheSvnTree(SvnTree):
         if lib_flag == True:
             return True
         else:
-            info_str  = 'Can not get [' + dep_libname + ' ' + dep_libversion + ' '
-            info_str += Glo.CPU + '_' + cmode[0:2] + '_' + Glo.SYSTEM + '] to local library cache!'
-            print info_str
-            print 'Please make sure the library [' + dep_libname + '] is available!'
             return False
 
     def remove_tree(self, item, cmode):

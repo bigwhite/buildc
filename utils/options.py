@@ -18,7 +18,7 @@ import sys
 import optparse
 from utils.errnos import Errors
 
-VERSION = '0.3.1'
+VERSION = '0.3.2'
 def options_parse():
     usage       = "usage: %prog [options] COMMAND args [var=val]"
 

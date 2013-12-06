@@ -50,6 +50,8 @@ class Pack(object):
 
         is_valid = Cache.cache_build_by_external_libs(buildc_cfg.external_libs, cmode, force_update)
         if is_valid == False:
+            os.chdir(build_home)
+            print "Cd " + build_home
             return False
 
         dotrepository  = Glo.dot_buildc_repository_path()
@@ -81,7 +83,10 @@ class Pack(object):
 
         is_valid = Makerules.config_make(cmode, force_update, "$(shell cd ../.; pwd)/deps", "$(shell cd .; pwd)")
         if is_valid == False:
+            os.chdir(build_home)
+            print "Cd " + build_home
             return False
+
         print "Config Make.rules OK!"
         Util.execute_and_output('rm -f buildc.cfg')
         print "Remove buildc.cfg OK!"
@@ -123,7 +128,13 @@ echo "config Make.rules OK!"
         os.chdir(source_home)
         print "Cd " + source_home
 
-        Makerules.config_make(cmode, force_update)
+        result = Makerules.config_make(cmode, force_update)
+        if result == False:
+            print "Config Make.rules Error!"
+            os.chdir(build_home)
+            print "Cd " + build_home
+            return False
+
         print "Config Make.rules OK!"
 
         Util.execute_and_output('make CMODE=' + cmode)
@@ -140,6 +151,7 @@ echo "config Make.rules OK!"
         print "Cd " + build_home
 
         print 'Build source [' + url + '] OK!'
+        return True
 
     @staticmethod
     def __build_version(build_home, source, cmode, tag):
@@ -429,7 +441,9 @@ echo "config Make.rules OK!"
         if tag != None:
             url       = tag
             pack_path = 'app'
-            Pack.__build_source(build_home, url, cmode, force_update, source[0]["binary_prefix"], pack_path)
+            result = Pack.__build_source(build_home, url, cmode, force_update, source[0]["binary_prefix"], pack_path)
+            if result == False:
+                return False
         else:
             for index in range(len(source)):
                 url = source[index]["trunk"]
@@ -437,7 +451,9 @@ echo "config Make.rules OK!"
                     pack_path = 'app'
                 else:
                     pack_path = source[index]["pack_path"]
-                Pack.__build_source(build_home, url, cmode, force_update, source[index]["binary_prefix"], pack_path)
+                result = Pack.__build_source(build_home, url, cmode, force_update, source[index]["binary_prefix"], pack_path)
+                if result == False:
+                    return False
 
         Pack.__build_version(build_home, source, cmode, tag)
 
@@ -445,6 +461,7 @@ echo "config Make.rules OK!"
         print('Del [.build] OK!')
 
         Pack.__make_package(build_home, distribution, cmode)
+        return True
 
     @staticmethod
     def __do_upload(build_home, distribution, opts):
@@ -660,8 +677,8 @@ echo "config Make.rules OK!"
         if "dependences" in list(dir(attribute_lists)):
             dependences = attribute_lists.dependences
 
-            is_valid = Cache.cache_build_by_external_libs(dependences, cmode, force_update)
-            if is_valid == False:
+            result = Cache.cache_build_by_external_libs(dependences, cmode, force_update)
+            if result == False:
                 return False
 
             dotrc = Glo.dot_buildc_rc_path()
@@ -677,7 +694,9 @@ echo "config Make.rules OK!"
             for dependence in dependences:
                 Pack.__copy_dependent_library(dependence, svn_tree, buildc_rc, build_home, cmode)
 
-        Pack.__do_pack(build_home, source, distribution, cmode, tag, force_update)
+        result = Pack.__do_pack(build_home, source, distribution, cmode, tag, force_update)
+        if result == False:
+            return False
         return True
 
     @staticmethod

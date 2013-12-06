@@ -103,6 +103,24 @@ class Cache(object):
         cache_svn_tree.export_format_tree_to_file(dotrepository)
 
     @staticmethod
+    def build_dependent_and_fault_tolerant(cache_svn_tree, fault_tolerant, dep_libname, dep_libversion, cmode, force_update = True):
+        info_str  = 'Can not get [' + dep_libname + ' ' + dep_libversion + ' '
+        info_str += Glo.CPU + '_' + cmode[0:2] + '_' + Glo.SYSTEM + '] to local library cache!'
+
+        result = cache_svn_tree.build_dependent(dep_libname, dep_libversion, cmode, force_update)
+        if fault_tolerant == True and result == False:
+            print info_str
+            print "==== Begin cache upgrade!!!! ===="
+            Cache.cache_upgrade()
+            return False
+
+        if result == False:
+            print info_str
+            print 'Please make sure the library [' + dep_libname + '] is available!'
+
+        return result
+
+    @staticmethod
     def cache_build_by_external_libs(external_libs, cmode, force_update = True):
         dotrc = Glo.dot_buildc_rc_path()
         if not os.path.exists(dotrc):
@@ -120,10 +138,24 @@ class Cache(object):
         for dependence in external_libs:
             (dep_libname, dep_libversion) = Glo.get_dependent_name_and_version(dependence)[0:2]
             print '\n===>Begin build library [' + dep_libname + ' ' + dep_libversion + ']'
-            result = cache_svn_tree.build_dependent(dep_libname, dep_libversion, cmode, force_update)
+            result = Cache.build_dependent_and_fault_tolerant(cache_svn_tree, True, dep_libname, dep_libversion, cmode, force_update)
             print '<=== End build library [' + dep_libname + ' ' + dep_libversion + ']'
             if result == False:
                 is_valid = False
+                break
+
+        if is_valid == False:
+            is_valid = True
+
+            cache_svn_tree = CacheSvnTree(buildc_rc.external_repositories)
+            cache_svn_tree.import_format_tree_from_file(dotrepository)
+            for dependence in external_libs:
+                (dep_libname, dep_libversion) = Glo.get_dependent_name_and_version(dependence)[0:2]
+                print '\n===>Begin build library [' + dep_libname + ' ' + dep_libversion + ']'
+                result = Cache.build_dependent_and_fault_tolerant(cache_svn_tree, False, dep_libname, dep_libversion, cmode, force_update)
+                print '<=== End build library [' + dep_libname + ' ' + dep_libversion + ']'
+                if result == False:
+                    is_valid = False
 
         cache_svn_tree.export_format_tree_to_file(dotrepository)
         return is_valid
