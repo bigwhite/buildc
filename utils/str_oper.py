@@ -38,10 +38,10 @@ class StrOper(object):
     @staticmethod
     def get_env_var_values(var_name, user_env_str):
         var_values = list()
-        user_env_str += '\n'
+        user_env_str = '\n' + user_env_str + '\n'
 
         value_list = list()
-        num = StrOper.take_tag_text(user_env_str, var_name + "=", '\n', var_values, -1)
+        num = StrOper.take_tag_text(user_env_str, '\n' + var_name + "=", '\n', var_values, -1)
         if num == 0:
             info_str = "Warning: " + var_name + " does not exist."
             print info_str
@@ -85,8 +85,8 @@ class StrOper(object):
                 may_be_del = ""
                 may_be_del += element
                 i = 1
-                for i in range(1, delimiter_l):
-                    element[0] = text_str[index]
+                while (i < delimiter_l):
+                    element = text_str[index]
                     index += 1
                     if (element[0] == delimiter[i]):
                         may_be_del += element
@@ -94,6 +94,7 @@ class StrOper(object):
                         may_be_del += element
                         context += may_be_del
                         break
+                    i += 1
 
                 if (i == delimiter_l):
                     if (append_delimiter == True):
@@ -154,7 +155,7 @@ class StrOper(object):
                     may_be_del = ""
                     may_be_del += element
                     i = 1
-                    for i in range(1, delimiter_l):
+                    while (i < delimiter_l):
                         element = text_str[index]
                         index += 1
                         delimiter_loc += 1
@@ -164,6 +165,7 @@ class StrOper(object):
                             index -= delimiter_loc
                             delimiter_loc = -1
                             break
+                        i += 1
 
                     if (i == delimiter_l):
                         if (append_delimiter == True):
@@ -266,7 +268,148 @@ class StrOper(object):
 
         return balance
 
+    @staticmethod
+    def take_inner_tag_text(text_str, before_tag, after_tag, text_list, \
+        max_num = -1, offset_tag = None, append_tag = False):
+        balance=0
+        text_l = len(text_str)
+
+        context = ""
+        element = ""
+        offset_tag_l = 0
+        if (offset_tag != None and offset_tag != ""):
+            offset_tag_l = len(offset_tag)
+        btag_l = len(before_tag)
+        atag_l = len(after_tag)
+
+        i = 0
+        index = 0
+
+        delimiter_loc = -1
+        while (offset_tag_l != 0 and index < text_l):
+            element = text_str[index]
+            index += 1
+            if (element[0] == offset_tag[index]):
+                delimiter_loc = 1
+                may_be_del = ""
+                may_be_del += element
+                i = 1
+                for i in range(1, offset_tag_l):
+                    element[0] = text_str[index]
+                    index += 1
+                    delimiter_loc += 1
+                    if (element[0] == offset_tag[i]):
+                        may_be_del += element
+                    else:
+                        index -= delimiter_loc
+                        delimiter_loc = -1
+                        break
+
+                if (i == offset_tag_l):
+                    if (append_tag == True):
+                        context += may_be_del
+                    i = 0
+                    break
+
+                i = 0
+                if (index == text_l):
+                    print "exception: index == text_l"
+                    assert(False)
+                    break
+                element = text_str[index]
+                index += 1
+
+        while (index < text_l):
+            level = -1
+            while (index < text_l):
+                element = text_str[index]
+                index += 1
+                if (before_tag[i] == element[0]):
+                    delimiter_loc = 1
+                    may_be_del = ""
+                    may_be_del += element
+                    i = 1
+                    while (i < btag_l):
+                        element = text_str[index]
+                        index += 1
+                        delimiter_loc += 1
+                        if (before_tag[i] == element[0]):
+                            may_be_del += element
+                        else:
+                            index -= delimiter_loc
+                            delimiter_loc = -1
+                            break
+                        i += 1
+
+                    if (i == btag_l):
+                        level = 1
+                        if (append_tag == True):
+                            context = may_be_del
+                        else:
+                            context = ""
+                        i = 0
+                        continue
+
+                    i = 0
+                    if (index == text_l):
+                        print "exception: index == text_l"
+                        assert(False)
+                        break
+                    element = text_str[index]
+                    index += 1
+
+                if (after_tag[i] == element[0]):
+                    delimiter_loc = 1
+                    may_be_del = ""
+                    may_be_del += element
+                    i = 1
+                    while (i < atag_l):
+                        element = text_str[index]
+                        index += 1
+                        delimiter_loc += 1
+                        if (after_tag[i] == element[0]):
+                            may_be_del += element
+                        else:
+                            index -= delimiter_loc
+                            delimiter_loc = -1
+                            break
+                        i += 1
+
+                    if (i == atag_l):
+                        if (level == 1):
+                            if (append_tag == True):
+                                context += may_be_del
+                            text_list.append(context)
+                            balance += 1
+                            i = 0
+                            break
+                        else:
+                            print "exist tag2, level=" + str(level)
+                            i = 0
+                            continue
+
+                    i = 0
+                    if (index == text_l):
+                        print "exception: index == text_l"
+                        assert(False)
+                        break
+                    element = text_str[index]
+                    index += 1
+
+                if (level == 1):
+                    context += element
+            if (balance == max_num):
+                return balance
+            context = ""
+
+        return balance
+
 if __name__ == '__main__':
+    inner_text_str = "<div><div>Intel E8</div><div>"
+    text_list = list()
+    StrOper.take_inner_tag_text(inner_text_str, "<div>", "</div>", text_list, -1, None, False)
+    for item in text_list:
+        print "value=" + item
 
     StrOper.show_hex_from_str("hello_world", len("hello_world"))
 
@@ -285,9 +428,14 @@ JRE_HOME=jre_temp/ffff/aaaa
 
     text_list = list()
     text_str = "1.2.3.4.5"
-
     print "test: take_cell_text()"
     StrOper.take_cell_text(text_str, ".", text_list, -1, False)
+    for i in range(len(text_list)):
+        print str(i) + "-->" + text_list[i]
+
+    text_list = list()
+    text_str = "1___2___3___4___5"
+    StrOper.take_cell_text(text_str, "___", text_list, -1, False)
     for i in range(len(text_list)):
         print str(i) + "-->" + text_list[i]
 
@@ -295,6 +443,12 @@ JRE_HOME=jre_temp/ffff/aaaa
     text_str = "1.2_3.4_5"
     print "test: take_cell_text_by_list()"
     StrOper.take_cell_text_by_list(text_str, (".", "_"), text_list, -1, False)
+    for i in range(len(text_list)):
+        print str(i) + "-->" + text_list[i]
+
+    text_list = list()
+    text_str = "1___2___3___4___5"
+    StrOper.take_cell_text_by_list(text_str, ("___", ), text_list, -1, False)
     for i in range(len(text_list)):
         print str(i) + "-->" + text_list[i]
 

@@ -31,16 +31,11 @@ class Cache(object):
     def __create_dot_repository(dotrc, dotrepository):
         buildc_rc = Load.load_dot_buildc_rc(dotrc)
 
-        cur_level = 1
         cache_svn_tree  = CacheSvnTree(buildc_rc.external_repositories)
 
         cache_svn_tree.check_local_cache_conflict()
 
-        for repository in buildc_rc.external_repositories:
-            svn_path = repository[0]
-            print "\n===>Begin init repository [" + svn_path + ']'
-            cache_svn_tree.build_tree(svn_path, cur_level, 3)
-            print '<=== End init repository [' + svn_path + ']'
+        cache_svn_tree.build_tree()
 
         cache_svn_tree.take_item_data_by_browse(None, SvnTree.default_empty_node, 1)
         cache_svn_tree.export_format_tree_to_file(dotrepository)

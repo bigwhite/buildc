@@ -13,6 +13,71 @@ class CacheSvnTree(SvnTree):
         SvnTree.__init__(self)
         self.__repositories = repositories
 
+    def __get_user_and_passwd_by_url(self, url):
+        user   = None
+        passwd = None
+        for item in self.__repositories:
+            repository = None
+            if len(item) == Glo.ONE_TUPLE:
+                if isinstance(item[0], tuple):
+                    repository = item[0]
+                else:
+                    repository = item
+
+                the_url = repository[0]
+                if the_url == url:
+                    user   = None
+                    passwd = None
+                    break
+            elif len(item) == Glo.TWO_TUPLE:
+                is_found = None
+                if isinstance(item[0], tuple):
+                    repository = item[0]
+                    is_found   = True
+                else:
+                    repository = item
+                    is_found   = False
+
+                the_url = repository[0]
+                if the_url == url:
+                    login_info_str = item[1]
+                    if is_found:
+                        user   = login_info_str[:str(login_info_str).find('/')]
+                        passwd = login_info_str[str(login_info_str).find('/')+1:]
+                    else:
+                        user   = None
+                        passwd = None
+                    break
+            else:
+                print 'tuple number invalid in .buildc.rc'
+                sys.exit(Errors.tuple_number_invalid)
+
+        return (user, passwd)
+
+    def __get_url_and_cache_path_list(self):
+        url_and_cache_path_list = list()
+
+        url        = None
+        cache_path = None
+        for item in self.__repositories:
+            repository = Glo.get_repository(item)
+
+            if len(repository) == Glo.ONE_TUPLE:
+                url = repository[0]
+
+                cache_path = '~/buildc_libs/'
+                cache_path += url[str(url).rfind('/')+1:]
+                cache_path = os.path.abspath(os.path.expanduser(cache_path))
+            elif len(repository) == Glo.TWO_TUPLE or len(repository) == Glo.THREE_TUPLE:
+                (url, cache_path) = (repository[0], repository[1])
+                cache_path = os.path.abspath(os.path.expanduser(cache_path))
+            else:
+                print 'tuple number invalid in .buildc.rc'
+                sys.exit(Errors.tuple_number_invalid)
+
+            url_and_cache_path_list.append((url, cache_path))
+        return url_and_cache_path_list
+
     def get_cache_libs(self, item, cmode, cache_libs):
         if (item == None):
             h_child_item = self.get_root_item()
@@ -47,20 +112,8 @@ class CacheSvnTree(SvnTree):
         cache_path = None
 
         tree = TreeByBinTree()
-        for repository in self.__repositories:
-            if len(repository) == Glo.ONE_TUPLE:
-                url = repository[0]
-
-                cache_path = '~/buildc_libs/'
-                cache_path += url[str(url).rfind('/')+1:]
-                cache_path = os.path.abspath(os.path.expanduser(cache_path))
-            elif len(repository) == Glo.TWO_TUPLE or len(repository) == Glo.THREE_TUPLE:
-                (url, cache_path) = (repository[0], repository[1])
-                cache_path = os.path.abspath(os.path.expanduser(cache_path))
-            else:
-                print 'tuple number invalid in .buildc.rc'
-                sys.exit(Errors.tuple_number_invalid)
-
+        url_and_cache_path_list = self.__get_url_and_cache_path_list()
+        for (url, cache_path) in url_and_cache_path_list:
             pre_item = tree.find_item(cache_path, '/', False, 1)
             if pre_item == None:
                 cur_item = tree.add_item(cache_path, '/', True, False, False)
@@ -72,15 +125,14 @@ class CacheSvnTree(SvnTree):
                 print '    map the same path.'
 
     def check_tree_consistency(self):
-        url = None
         presence_consistency_flag = True
         is_only                   = True
         is_equal                  = True
         order_consistency_flag    = True
 
         url_list = list()
-        for repository in self.__repositories:
-            url = repository[0]
+        url_and_cache_path_list = self.__get_url_and_cache_path_list()
+        for (url, cache_path) in url_and_cache_path_list:
             root_item = self.find_item(url, '|', False, 1)
             if root_item == None:
                 print "Error: svn path " + url + " does not exist in .buildc.repository."
@@ -157,8 +209,16 @@ class CacheSvnTree(SvnTree):
                 if item == None:
                     break
 
-    def build_tree(self, search_path, cur_level, level_max = -1):
-        SvnTree.build_tree(self, search_path, cur_level, level_max)
+    def build_tree(self):
+        cur_level = 1
+        url_and_cache_path_list = self.__get_url_and_cache_path_list()
+        for (svn_path, cache_path) in url_and_cache_path_list:
+            (trunk_user, trunk_passwd) = self.__get_user_and_passwd_by_url(svn_path)
+
+            print "\n===>Begin init repository [" + svn_path + ']'
+            SvnTree.build_tree(self, svn_path, cur_level, 3, trunk_user, trunk_passwd)
+            print '<=== End init repository [' + svn_path + ']'
+
         self.__adjust_tree()
 
     def update_tree(self, item, cmode, ignore_error):
@@ -186,7 +246,8 @@ class CacheSvnTree(SvnTree):
                     real_cache_name_path    = real_cache_version_path[:str(real_cache_version_path).rfind('/')]
                     dep_libname    = real_cache_name_path[str(real_cache_name_path).rfind('/')+1:]
                     dep_libversion = real_cache_version_path[str(real_cache_version_path).rfind('/')+1:]
-                    svn_revision_code = SvnLocalOper.get_svn_info_revision_code(real_svn_path, True)
+                    (trunk_user, trunk_passwd) = self.__get_user_and_passwd_by_url(svn_root_path)
+                    svn_revision_code = SvnLocalOper.get_svn_info_revision_code(real_svn_path, True, trunk_user, trunk_passwd)
                     if h_child_item.data == 'none':
                         if os.path.exists(real_cache_path):
                             Util.execute_and_return("rm -rf " + real_cache_path)
@@ -195,13 +256,13 @@ class CacheSvnTree(SvnTree):
                         if not os.path.exists(real_cache_path):
                             print 'library [' + dep_libname + ' ' + dep_libversion + '] does not exist!'
                             print 'Checkout [' + real_svn_path + ']...'
-                            SvnLocalOper.checkout(real_svn_path, real_cache_path, ignore_error)
+                            SvnLocalOper.checkout(real_svn_path, real_cache_path, ignore_error, trunk_user, trunk_passwd)
                             print 'Checkout [' + real_svn_path + '] OK!'
                         else:
                             cache_revision_code = SvnLocalOper.get_svn_info_revision_code(real_cache_path, None)
                             if svn_revision_code != cache_revision_code:
                                 print 'Update [' + dep_libname + ' ' + dep_libversion + ']...'
-                                SvnLocalOper.update(real_cache_path, ignore_error)
+                                SvnLocalOper.update(real_cache_path, ignore_error, trunk_user, trunk_passwd)
                                 print 'Update [' + dep_libname + ' ' + dep_libversion + '] OK!'
 
                         h_child_item.data = svn_revision_code
@@ -228,7 +289,8 @@ class CacheSvnTree(SvnTree):
 
                 full_cache_path = cache_root_path + '|' + dep_libname + '|' + dep_libversion + '|' + Glo.CPU + '_' + cmode[0:2] + '_' + Glo.SYSTEM
                 real_cache_path = str(full_cache_path).replace('|', '/')
-                svn_revision_code = SvnLocalOper.get_svn_info_revision_code(real_svn_path, True)
+                (trunk_user, trunk_passwd) = self.__get_user_and_passwd_by_url(svn_root_path)
+                svn_revision_code = SvnLocalOper.get_svn_info_revision_code(real_svn_path, True, trunk_user, trunk_passwd)
                 if svn_revision_code == "":
                     return False
                 if leaf_node.data == 'none':
@@ -237,7 +299,7 @@ class CacheSvnTree(SvnTree):
 
                     print 'library [' + dep_libname + ' ' + dep_libversion + '] does not exist!'
                     print 'Checkout [' + real_svn_path + ']...'
-                    result = SvnLocalOper.checkout(real_svn_path, real_cache_path, True)
+                    result = SvnLocalOper.checkout(real_svn_path, real_cache_path, True, trunk_user, trunk_passwd)
                     if result == False:
                         return False
                     print 'Checkout [' + real_svn_path + '] OK!'
@@ -246,7 +308,7 @@ class CacheSvnTree(SvnTree):
                     if not os.path.exists(real_cache_path):
                         print 'library [' + dep_libname + ' ' + dep_libversion + '] does not exist!'
                         print 'Checkout [' + real_svn_path + ']...'
-                        result = SvnLocalOper.checkout(real_svn_path, real_cache_path, True)
+                        result = SvnLocalOper.checkout(real_svn_path, real_cache_path, True, trunk_user, trunk_passwd)
                         if result == False:
                             return False
                         print 'Checkout [' + real_svn_path + '] OK!'
@@ -258,7 +320,7 @@ class CacheSvnTree(SvnTree):
                                 return False
                             if svn_revision_code != cache_revision_code:
                                 print 'Update [' + dep_libname + ' ' + dep_libversion + ']...'
-                                result = SvnLocalOper.update(real_cache_path, True)
+                                result = SvnLocalOper.update(real_cache_path, True, trunk_user, trunk_passwd)
                                 if result == False:
                                     return False
                                 print 'Update [' + dep_libname + ' ' + dep_libversion + '] OK!'

@@ -37,10 +37,20 @@ class Glo(object):
     PACK_SUFFIX = ""
 
     VAR_STR = ""
+    SOURCE_SVN_USER   = None
+    SOURCE_SVN_PASSWD = None
 
     @staticmethod
     def var_str():
         return Glo.VAR_STR
+
+    @staticmethod
+    def source_svn_user():
+        return Glo.SOURCE_SVN_USER
+
+    @staticmethod
+    def source_svn_passwd():
+        return Glo.SOURCE_SVN_PASSWD
 
     @staticmethod
     def dot_buildc_rc_path():
@@ -123,11 +133,32 @@ class Glo(object):
         return (dep_libname, dep_libversion, dep_tagfile)
 
     @staticmethod
+    def get_repository(item):
+        repository = None
+        if len(item) == Glo.ONE_TUPLE:
+            if isinstance(item[0], tuple):
+                repository = item[0]
+            else:
+                repository = item
+        elif len(item) == Glo.TWO_TUPLE:
+            if isinstance(item[0], tuple):
+                repository = item[0]
+            else:
+                repository = item
+        else:
+            print 'tuple number invalid in .buildc.rc'
+            sys.exit(Errors.tuple_number_invalid)
+
+        return repository
+
+    @staticmethod
     def get_local_cache_path(svn_path, repositories):
         url        = None
         cache_path = None
 
-        for repository in repositories:
+        for item in repositories:
+            repository = Glo.get_repository(item)
+
             if len(repository) == Glo.ONE_TUPLE:
                 url = repository[0]
                 if svn_path == url:

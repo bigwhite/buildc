@@ -33,6 +33,7 @@ class Util:
         err = out[0]
         string = out[1]
         if err != 0:
+            string = None
             print "Failed to execute cmd [%s], errno = [%d]" % (cmd, err)
             if (ignore_error == None):
                 sys.exit(err)

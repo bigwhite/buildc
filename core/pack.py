@@ -9,6 +9,7 @@ from ftplib import FTP
 from utils import options
 from utils.errnos import Errors
 from utils.util import Util
+from utils.data_oper import DataOper
 from utils.svn_local_oper import SvnLocalOper
 from glo import Glo
 from load import Load
@@ -32,7 +33,7 @@ class Pack(object):
         print "Create dir [.build] OK!"
 
         Util.execute_and_output('rm -rf ' + url[url.rindex("/")+1:])
-        Util.execute_and_output('svn export ' + url)
+        SvnLocalOper.export(url, None, None, Glo.source_svn_user(), Glo.source_svn_passwd(), False)
         print "Export [" + url + "] OK!"
 
         source_home = build_home + '/.build/' + url[url.rindex("/")+1:]
@@ -74,7 +75,7 @@ class Pack(object):
         print "Create dir [.build] OK!"
 
         Util.execute_and_output('rm -rf ' + url[url.rindex("/")+1:])
-        Util.execute_and_output('svn export ' + url)
+        SvnLocalOper.export(url, None, None, Glo.source_svn_user(), Glo.source_svn_passwd(), False)
         print "Export [" + url + "] OK!"
 
         source_home = build_home + '/.build/' + url[url.rindex("/")+1:]
@@ -116,12 +117,23 @@ echo "config Make.rules OK!"
         return True
 
     @staticmethod
+    def __make(cmode):
+        cmd_str = 'make CMODE=' + cmode + ' > make.log 2>&1'
+        err = Util.execute_and_return(cmd_str)
+        f = open('make.log', 'r')
+        print f.read()
+        f.close()
+        if err != 0:
+            print "Failed to execute cmd [%s], errno = [%d]" % (cmd_str, err)
+            sys.exit(err)
+
+    @staticmethod
     def __build_source(build_home, url, cmode, force_update, binary_prefix, pack_path):
         Util.execute_and_output('mkdir -p ' + build_home + os.sep + '.build')
         os.chdir(build_home + os.sep + '.build')
         print "Create dir [.build] OK!"
 
-        Util.execute_and_output('svn export ' + url)
+        SvnLocalOper.export(url, None, None, Glo.source_svn_user(), Glo.source_svn_passwd(), False)
         print "Export [" + url + "] OK!"
 
         source_home = build_home + os.sep + '.build' + os.sep + url[url.rindex("/")+1:]
@@ -137,7 +149,7 @@ echo "config Make.rules OK!"
 
         print "Config Make.rules OK!"
 
-        Util.execute_and_output('make CMODE=' + cmode)
+        Pack.__make(cmode)
         print "Make OK!"
 
         if pack_path != "":
@@ -197,13 +209,11 @@ echo "config Make.rules OK!"
                '-' + Glo.SYSTEM + \
                '-' + cmode[:2] + 'bit' + '-deps' + Glo.PACK_SUFFIX
 
-        os.makedirs(build_home + '/.package/' + target_prefix)
-        print "Create dir [.package/" + target_prefix + "] OK!"
-        if sys.version_info[0] == 2 and sys.version_info[1] < 6:
-            shutil.copytree(build_home + '/src/deps', build_home + '/.package/' + target_prefix + '/deps')
-        else:
-            shutil.copytree(build_home + '/src/deps', build_home + '/.package/' + target_prefix + '/deps',
-                            ignore = shutil.ignore_patterns('*.pyc', '.svn'))
+        src_path = build_home + os.sep + 'src' + os.sep + 'deps'
+        dst_path = build_home + os.sep + '.package' + os.sep + target_prefix + os.sep + 'deps'
+        DataOper.copy_tree_ex(src_path, dst_path, [".svn"], ["*"], True)
+        print "copy %s to %s" % (src_path, dst_path)
+
         shutil.copy2(build_home + '/src/VERSION', build_home + '/.package/' + target_prefix)
 
         os.chdir(build_home + os.sep + '.package')
@@ -237,11 +247,11 @@ echo "config Make.rules OK!"
                '-' + Glo.SYSTEM + \
                '-' + cmode[:2] + 'bit' + '-src' + Glo.PACK_SUFFIX
 
-        if sys.version_info[0] == 2 and sys.version_info[1] < 6:
-            shutil.copytree(build_home + '/.build', build_home + '/.package/' + target_prefix)
-        else:
-            shutil.copytree(build_home + '/.build', build_home + '/.package/' + target_prefix,
-                            ignore = shutil.ignore_patterns('*.pyc', '.svn'))
+        src_path = build_home + '/.build'
+        dst_path = build_home + '/.package/' + target_prefix
+        DataOper.copy_tree_ex(src_path, dst_path, [".svn"], ["*"], True)
+        print "copy %s to %s" % (src_path, dst_path)
+
         shutil.copy2(build_home + '/src/VERSION', build_home + '/.package/' + target_prefix)
 
         os.chdir(build_home + os.sep + '.package')
@@ -277,12 +287,12 @@ echo "config Make.rules OK!"
 
         src_path = build_home + os.sep + 'src' + os.sep + 'deps'
         dst_path = build_home + os.sep + '.package' + os.sep + target_prefix + os.sep + 'deps'
-        Pack.__copy_tree(src_path, dst_path, [".svn"], ["*"])
+        DataOper.copy_tree_ex(src_path, dst_path, [".svn"], ["*"], True)
         print "copy %s to %s" % (src_path, dst_path)
 
         src_path = build_home + '/.build'
         dst_path = build_home + '/.package/' + target_prefix
-        Pack.__copy_tree(src_path, dst_path, [".svn"], ["*"])
+        DataOper.copy_tree_ex(src_path, dst_path, [".svn"], ["*"], True)
         print "copy %s to %s" % (src_path, dst_path)
         shutil.copy2(build_home + '/src/VERSION', build_home + '/.package/' + target_prefix)
 
@@ -317,11 +327,10 @@ echo "config Make.rules OK!"
                 '-' + Glo.SYSTEM + \
                 '-' + cmode[:2] + 'bit' + Glo.PACK_SUFFIX
 
-        if sys.version_info[0] == 2 and sys.version_info[1] < 6:
-            shutil.copytree(build_home + '/src', build_home + '/.package/' + target_prefix)
-        else:
-            shutil.copytree(build_home + '/src', build_home + '/.package/' + target_prefix,
-                            ignore = shutil.ignore_patterns('*.pyc', '.svn'))
+        src_path = build_home + os.sep + 'src'
+        dst_path = build_home + os.sep + '.package' + os.sep + target_prefix
+        DataOper.copy_tree_ex(src_path, dst_path, [".svn"], ["*"], True)
+        print "copy %s to %s" % (src_path, dst_path)
 
         os.chdir(build_home + os.sep + '.package')
         print "Cd " + build_home + os.sep + '.package'
@@ -353,6 +362,9 @@ echo "config Make.rules OK!"
 
         Util.execute_and_output('rm -f ' + build_home + '/src/app/*')
         print 'Clean [./src/app] OK!'
+
+        Util.execute_and_output('rm -f ' + build_home + '/src/lib/*')
+        print 'Clean [./src/lib] OK!'
 
         Util.execute_and_output('rm -fr ' + build_home + '/src/deps/*')
         print 'Clean [./src/deps] OK!'
@@ -528,42 +540,9 @@ echo "config Make.rules OK!"
         return True
 
     @staticmethod
-    def __copy_tree(src, dst, excludable_dirs=[], filters=["*"]):
-        '''copy SRC directory into DST
-
-        filters are like ["*.txt", "*.xml"]
-        '''
-        dest = os.path.expandvars(dst)
-        srcf = os.path.expandvars(src)
-        if not os.path.isdir(dest):
-            os.makedirs(dest)
-
-        names = os.listdir(srcf)
-        for name in names:
-            srcname = os.path.join(srcf, name)
-            dstname = os.path.join(dest, name)
-            if os.path.isdir(srcname):
-                excludable_flag = False
-                for excludable_dir in excludable_dirs:
-                    if name == excludable_dir:
-                        excludable_flag = True
-                if not excludable_flag:
-                    Pack.__copy_tree(srcname, dstname, excludable_dirs, filters)
-        files = [glob.glob(os.path.join(srcf, fl)) for fl in filters]
-        names = list(itertools.chain(*files))
-
-        for name in names:
-            if not os.path.isdir(name):
-                try:
-                    shutil.copy2(name, dest)
-                except IOError:
-                    Util.execute_and_output('cp -r %s %s' % (name, dest))
-        return
-
-    @staticmethod
     def __copy_dependent_file(src_path, dst_path, tagfiles):
         if tagfiles == None or len(tagfiles) == 0:
-            Pack.__copy_tree(src_path, dst_path, [".svn"], ["*"])
+            DataOper.copy_tree_ex(src_path, dst_path, [".svn"], ["*"], True)
             print "copy %s to %s" % (src_path, dst_path)
             return
 

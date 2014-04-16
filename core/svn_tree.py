@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 from utils.util import Util
 from utils.datastruct.treebybintree import TreeByBinTree
+from utils.svn_local_oper import SvnLocalOper
 
 class SvnTree(TreeByBinTree):
     def export_node_function(self, tree_str, node_data):
@@ -57,15 +58,14 @@ class SvnTree(TreeByBinTree):
 
         return True
 
-    def build_tree(self, search_path, cur_level, level_max = -1):
+    def build_tree(self, search_path, cur_level, level_max = -1, trunk_user = None, trunk_pass = None):
         if cur_level > level_max:
             return
 
         svn_path = search_path.replace("|", "/")
-        cmd_output = Util.execute_and_output("svn ls " + svn_path)
-        if cmd_output == "":
+        item_nodes = SvnLocalOper.get_svn_ls(svn_path, None, trunk_user, trunk_pass)
+        if len(item_nodes) == 0:
             return
-        item_nodes = str(cmd_output).split("\n")
 
         is_dir = True
         for item_node in item_nodes:
@@ -80,5 +80,5 @@ class SvnTree(TreeByBinTree):
 
             if is_dir == True:
                 cur_level = cur_level + 1
-                SvnTree.build_tree(self, node_path, cur_level, level_max)
+                SvnTree.build_tree(self, node_path, cur_level, level_max, trunk_user, trunk_pass)
                 cur_level = cur_level - 1

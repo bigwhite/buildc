@@ -61,8 +61,8 @@ def options_parse():
     p.add_option("",   "--project", help="setup project name")
 
     p.add_option("",   "--host",    help="ftp host")
-    p.add_option("",   "--user",    help="ftp username")
-    p.add_option("",   "--passwd",  help="ftp passwd")
+    p.add_option("",   "--user",    help="ftp/svn username")
+    p.add_option("",   "--passwd",  help="ftp/svn passwd")
     p.add_option("",   "--port",    help="ftp port")
 
     p.add_option("",   "--dir",     help="remote directory")

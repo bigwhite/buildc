@@ -65,7 +65,6 @@ def do_uninstall(install_root):
         shutil.rmtree(install_root)
 
     print 'uninstall buildc ok!'
-    sys.exit(0)
 
 def setup_main():
     action, install_root = get_args()

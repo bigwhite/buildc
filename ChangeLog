@@ -1,8 +1,13 @@
 # 
 # ChangeLog for buildc
 #
-2013-08-01 Wtz <wtz1989227@gmail.com>
+2014-04-10 Wtz <wtz1989227@gmail.com>
     * add the SVN repository version change processing logic
+    * add setting svn user name and password in the .buildc.rc
+    * add --user and --password parameter when executing "buildc pack build/source"
+    * add default src/lib directory clean up in the packaging process
+    * add filtering out .svn path in the packaging process
+    * add displaying output information of make command in the packaging process
     * version 0.3.2 released
 
 2013-07-15 Tony Bai <bigwhite.cn@gmail.com>

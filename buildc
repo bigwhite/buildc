@@ -109,6 +109,9 @@ def buildc_run(opts, args):
         if args[1] == 'build':
             if opts.cmode == None:
                 opts.cmode = Glo.BIT64
+            if opts.user != None:
+                Glo.SOURCE_SVN_USER   = opts.user
+                Glo.SOURCE_SVN_PASSWD = opts.passwd
             result = Core.pack_build(opts.cmode, opts.tag, opts.force_update)
             if result:
                 print "Buildc pack build OK!"
@@ -131,6 +134,9 @@ def buildc_run(opts, args):
         if args[1] == 'source':
             if opts.cmode == None:
                 opts.cmode = Glo.BIT64
+            if opts.user != None:
+                Glo.SOURCE_SVN_USER   = opts.user
+                Glo.SOURCE_SVN_PASSWD = opts.passwd
             result = Core.pack_source(opts.cmode, opts.tag, opts.force_update, opts.component)
             if result:
                 print "Buildc pack source OK!"
